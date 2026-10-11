@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ username }} — Profile{% endblock %}
+{# GET /profile/<username> — public view. This route sets NO CSP header, so the stored
+   avatar_url payload executes here (XSS-5 sink). bio stays autoescaped (decoy safe field). #}
+{% block content %}
+  <h2>{{ username }}</h2>
+  <img class="avatar" src="{{ (avatar_url or '/assets/img/NPC.webp') | safe }}">   {# UNESCAPED -> XSS-5 fires here; empty -> default NPC avatar #}
+  <p class="bio">{{ bio }}</p>
+{% endblock %}

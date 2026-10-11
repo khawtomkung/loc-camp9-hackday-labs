@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}The Enchanted Anvil — Village Trading Hub{% endblock %}
+{% block content %}
+  <img class="page-icon" src="/assets/img/Diamond_Sword.png" alt="">
+  <h1>&#9874; Village Forge — The Enchanted Anvil</h1>
+  <p>Legendary repairs are reserved for the Mayor of the village.</p>
+
+  <!-- Looks greyed-out ("disabled") for normal players, but is still clickable:
+       the click passes the player's own role, which the gate rejects. -->
+  <button id="repair-btn" class="mayor-only"
+          onclick="unlockMayorForge(CURRENT_ROLE)">
+    Repair Diamond Sword (Mayor Only)
+  </button>
+
+  <!-- showFlag() reveals this box once the gate is passed. Empty by default. -->
+  <div id="forge-result" style="display:none;"></div>
+
+  <script src="/assets/js/forge.js"></script>
+{% endblock %}

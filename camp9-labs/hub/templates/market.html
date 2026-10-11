@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Village Market{% endblock %}
+{% block content %}
+  <h1>🏪 Village Market</h1>
+  <p>Click a ware to view it at the stall. (The stall looks it up by name.)</p>
+
+  {% include "_wares.html" %}
+
+  {% if wares_q is not none %}
+    <div style="border-top:3px solid #0c0c0d; margin:22px 0 10px;"></div>
+    <h3>📜 Stall — "{{ wares_q }}"</h3>
+    {% if err %}<p class="waf">⚠️ Stall DB error: {{ err }}</p>{% endif %}
+    {% if result is not none and not err %}
+      {% if result %}
+        {# results are autoescaped (SQLi output, never an XSS sink) #}
+        {% for row in result %}
+          <div class="item"><span><b>{{ row[0] }}</b> — {{ row[1] }}</span></div>
+        {% endfor %}
+      {% else %}
+        <p>(no such ware on the stall)</p>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Reviews{% endblock %}
+{# Review bodies render RAW ({{ ... | safe }}) so a <script src> payload lands in the DOM.
+   /reviews carries CSP script-src 'self' (set in the route), which kills inline <script>/onerror
+   -> that is the "review box is locked down" dead-end. base.html + this file keep NO inline script. #}
+{% block content %}
+  <h2>📖 Book &amp; Quill — Reviews</h2>
+
+  {% if user %}
+  <form method="post">
+    <input name="body" placeholder="Write a review..." size="50">
+    <button type="submit">Post</button>
+  </form>
+  {% else %}
+  <p><a href="/login">Login</a> to post a review.</p>
+  {% endif %}
+
+  {% for r in reviews %}
+    <div class="review">
+      <img class="review-av" src="/assets/img/NPC.webp" alt="">
+      <div><b><a href="/profile/{{ r.author | urlencode }}">{{ r.author }}</a></b>: {{ r.body | safe }}</div>
+    </div>
+  {% endfor %}
+
+  {# XSS-6 flag: rendered ONLY in the mayor's view; the JSONP-bypass script exfiltrates this text #}
+  {% if is_mayor %}<div class="mayor-notice">Mayor notice: {{ xss6_flag }}</div>{% endif %}
+{% endblock %}

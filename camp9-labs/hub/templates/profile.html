@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+  <h2>🧑 My Profile ({{ user }})</h2>
+  <p>Set your avatar and bio. Your public profile is at
+     <a href="/profile/{{ user | urlencode }}">/profile/{{ user }}</a>.</p>
+  {# value is autoescaped HERE (safe). The sink is profile_public.html (avatar_url rendered | safe). #}
+  <form method="post">
+    <p>Avatar URL: <input name="avatar_url" value="{{ avatar_url }}" size="60"></p>
+    <p>Bio:<br><textarea name="bio" rows="3" cols="50">{{ bio }}</textarea></p>
+    <button type="submit">Save</button>
+  </form>
+{% endblock %}

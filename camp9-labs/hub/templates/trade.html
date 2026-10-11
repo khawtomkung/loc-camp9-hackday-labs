@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Village Trading Hub — Trade Stall{% endblock %}
+{% block content %}
+  <h1>Village Trade Stall</h1>
+  <p>Buy goods with emeralds. Some wares are reserved for the Mayor.</p>
+
+  {% for it in items %}
+  <div class="item">
+    <span><img class="item-icon" src="/assets/img/{{ {'bread':'Bread.png','emerald_block':'Emerald.png','diamond_sword':'Diamond_Sword.png'}.get(it.id, 'Emerald.png') }}" alt="">{{ it.name }} — <span class="price">{{ it.price }} emeralds</span>
+      {% if it.mayor_only %}<span class="lock">[Mayor Only]</span>{% endif %}
+    </span>
+    {% if it.mayor_only %}
+      <button disabled title="Reserved for the Mayor">Buy</button>
+    {% else %}
+      <button onclick="buyItem('{{ it.id }}')">Buy</button>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div id="result"></div>
+
+  <script>
+    // The page always shops as a plain villager. role + can_buy are client-controlled
+    // (the bug): the server trusts whatever ends up in this body.
+    const CURRENT_ROLE = "user";
+
+    function buyItem(itemId) {
+      fetch("/api/trade", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "item=" + encodeURIComponent(itemId)
+            + "&role=" + encodeURIComponent(CURRENT_ROLE)
+            + "&can_buy=false"
+      })
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById("result").textContent =
+          d.flag ? ("FLAG: " + d.flag)
+                 : (d.ok ? ("OK: " + d.message) : ("DENIED: " + d.error));
+      });
+    }
+  </script>
+{% endblock %}

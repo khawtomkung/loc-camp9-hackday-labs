@@ -1,0 +1,43 @@
+# docker-compose.yml — Hub + Admin Bot + CTFd (lab.txt §10)
+# Keep this on a CLOSED lab network (players attack only the Hub).
+# NOTE on origins: the bot hits http://hub:8080 while players hit http://<host>:8080.
+# The `session` cookie is per-origin, so a stolen cookie replays only against the SAME host
+# students use — publish one canonical HUB and set the bot's HUB= to that host if players use it.
+services:
+  hub:
+    build: .                       # Dockerfile runs: python app.py (gunicorn in prod)
+    ports: ["8080:8080"]           # HUB = http://<host>:8080
+    # Flags/creds come from _secrets.py (create it from _secrets.example.py before building)
+    # or from env. The mayor password is passed here so the hub and bot stay in sync.
+    environment:
+      - MAYOR_PASSWORD=${MAYOR_PASS:-change_me_mayor_password}
+    # app.py MUST set the session cookie with httponly=False (see lab.txt §3)
+
+  bot:
+    build: ./bot                   # node:20-slim + npx playwright install --with-deps chromium
+    environment:
+      - HUB=http://hub:8080
+      - MAYOR_USER=mayor
+      - MAYOR_PASS=${MAYOR_PASS:-change_me_mayor_password}   # set in a gitignored .env (or host env)
+    depends_on: [hub]
+    command: node bot.js
+
+  ctfd:
+    image: ctfd/ctfd:latest
+    ports: ["8000:8000"]           # scoreboard = http://<host>:8000
+    environment:
+      - SECRET_KEY=ctfd-change-me
+      - DATABASE_URL=mysql+pymysql://ctfd:ctfd@db/ctfd
+      - REDIS_URL=redis://cache:6379
+    depends_on: [db, cache]
+    volumes: ["ctfd-uploads:/var/uploads", "./CTFd/logs:/var/log/CTFd"]
+
+  db:
+    image: mariadb:10.11
+    environment: { MARIADB_ROOT_PASSWORD: ctfd, MARIADB_DATABASE: ctfd, MARIADB_USER: ctfd, MARIADB_PASSWORD: ctfd }
+    volumes: ["ctfd-db:/var/lib/mysql"]
+
+  cache:
+    image: redis:7-alpine
+
+volumes: { ctfd-uploads: {}, ctfd-db: {} }

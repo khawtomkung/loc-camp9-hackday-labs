@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+  <h2>Login</h2>
+  {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+  <form method="post">
+    <p><input name="username" placeholder="username"></p>
+    <p><input name="password" type="password" placeholder="password"></p>
+    <button>Login</button>
+  </form>
+  <p><small>Players get a normal account. The <b>mayor</b> account is used by the Admin Bot.</small></p>
+{% endblock %}

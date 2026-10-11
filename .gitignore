@@ -1,0 +1,32 @@
+# === Teaching / design / solution material — NOT for the public lab repo ===
+/00-หลักสูตรภาพรวม.md
+/JS/
+/web_lhf/
+/XSS/
+camp9-labs/lab.txt
+camp9-labs/lab_detail.md
+camp9-labs/checklist.md
+camp9-labs/continuity-review.md
+
+# Stale root build artifacts (the live copies live in camp9-labs/hub/static/;
+# the root .map is an OLD copy that still leaks the JS-2 flag in plaintext)
+/trading_logic.js
+/trading_logic.min.js
+/trading_logic.min.js.map
+
+# === Lab secrets + generated encoded challenge assets (never commit real flags) ===
+camp9-labs/hub/_secrets.py
+camp9-labs/hub/dev-backup/
+camp9-labs/hub/attachments/config.bak.enc
+camp9-labs/hub/static/assets/vip/
+camp9-labs/hub/static/forge-recipes/
+
+# OS / editor / Python / Node junk
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+node_modules/

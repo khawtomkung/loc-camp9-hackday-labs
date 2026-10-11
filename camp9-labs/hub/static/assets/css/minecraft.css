@@ -1,0 +1,163 @@
+/* minecraft.css — minecraft.net-style theme for the Village Trading Hub.
+   CSS only (no JS) + all images self-hosted under /assets/img, so it is offline-safe
+   on the closed lab network, CSP-safe on /reviews, and never touches the challenges. */
+
+:root {
+  --bg:       #0d0f13;
+  --bg-2:     #15171c;
+  --nav:      #1d1d20;
+  --panel:    #26272b;
+  --panel-2:  #2f3035;
+  --slot:     #8b8b8b;
+  --text:     #e9e9e9;
+  --muted:    #b7c0cc;
+  --green:    #6cc349;   /* minecraft green */
+  --green-2:  #4c9f38;
+  --orange:   #f3a21a;   /* CTA */
+  --orange-2: #ffc24b;
+  --gold:     #ffaa00;
+  --red:      #ff5555;
+  --shadow:   #3f3f3f;
+  --lt: rgba(255,255,255,.28);
+  --dk: rgba(0,0,0,.45);
+}
+
+* { box-sizing: border-box; }
+img { image-rendering: pixelated; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: "Courier New", ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 700;
+  line-height: 1.55;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 500px at 80% -10%, rgba(40,70,110,.25) 0, transparent 60%),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,.02) 0 2px, transparent 2px 18px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 2px, transparent 2px 18px);
+}
+
+/* ---------- headings: blocky, drop-shadow ---------- */
+h1, h2, h3 { margin:.4em 0; text-transform: uppercase; letter-spacing: 1px;
+  text-shadow: 2px 2px 0 var(--shadow); }
+h1 { color:#fff; } h2 { color: var(--gold); } h3 { color: var(--green); }
+
+/* pixel-glow title (like the minecraft.net hero text) */
+.glow {
+  color:#fff; letter-spacing: 3px;
+  text-shadow: 0 0 2px #d6f0ff, 0 0 10px #4db2ff, 0 0 22px #2f8fe0, 3px 3px 0 #0a2238;
+}
+
+/* ---------- top nav bar (minecraft.net style) ---------- */
+nav {
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:8px 18px; background:var(--nav); border-bottom:3px solid #000;
+}
+.nav-logo { height:30px; display:block; filter: drop-shadow(0 2px 0 rgba(0,0,0,.6)); }
+nav a { color:#cfcfcf; text-decoration:none; padding:4px 6px; font-size:14px; }
+nav a:hover { color:#fff; }
+.nav-spacer { flex:1 1 auto; }
+.nav-user { color: var(--gold); }
+hr { display:none; }
+
+/* ---------- buttons ---------- */
+.btn-primary {         /* orange CTA (BRAVE THE UNKNOWN) */
+  display:inline-block; text-decoration:none; text-transform:uppercase; letter-spacing:1px;
+  color:#3a2600; font-weight:900; padding:12px 22px;
+  background: linear-gradient(var(--orange-2) 0 50%, var(--orange) 50% 100%);
+  border:3px solid #7a4e06;
+  box-shadow: inset 2px 2px 0 var(--lt), inset -2px -2px 0 var(--dk);
+}
+.btn-primary:hover { filter:brightness(1.08); }
+.btn-ghost {           /* green outline (BUY NOW) */
+  display:inline-block; text-decoration:none; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--green); font-weight:900; padding:6px 14px; background:transparent;
+  border:3px solid var(--green-2);
+}
+.btn-ghost:hover { background: rgba(76,159,56,.16); color:#fff; }
+
+/* default form buttons = blocky green */
+button, input[type="submit"] {
+  font-family:inherit; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+  color:#fff; text-shadow:2px 2px 0 var(--shadow); cursor:pointer;
+  background: linear-gradient(var(--green) 0 50%, var(--green-2) 50% 100%);
+  border:3px solid #223; padding:9px 16px; border-radius:0;
+  box-shadow: inset 2px 2px 0 var(--lt), inset -2px -2px 0 var(--dk);
+}
+button:hover, input[type="submit"]:hover { filter:brightness(1.1); }
+button:active { transform: translatey(1px); box-shadow: inset -2px -2px 0 var(--lt), inset 2px 2px 0 var(--dk); }
+button[disabled] { background: var(--slot); color:#ddd; cursor:not-allowed; filter:none; }
+.mayor-only { opacity:.6; }   /* greyed "Mayor Only" button — still clickable (JS-3) */
+
+/* ---------- content panel = inventory frame ---------- */
+main {
+  max-width: 860px; margin: 22px auto; padding: 20px 24px;
+  background: var(--panel); border:4px solid #0c0c0d;
+  box-shadow:
+    inset 0 0 0 2px var(--panel-2),
+    inset 3px 3px 0 var(--lt), inset -3px -3px 0 var(--dk),
+    0 8px 0 rgba(0,0,0,.45);
+}
+a { color: var(--green); }
+p { color: var(--text); }
+
+/* ---------- hero (breaks out of the main padding for a fuller banner) ---------- */
+.hero {
+  text-align:center; padding:46px 20px 34px; margin:-20px -24px 26px;
+  background:
+    radial-gradient(1100px 380px at 50% -20%, #22406a 0, transparent 62%),
+    linear-gradient(#111a28, #0b0e15);
+  border-bottom:3px solid #000;
+}
+.hero-logo { width:min(520px,82%); filter: drop-shadow(0 6px 0 rgba(0,0,0,.55)); }
+.hero-title { font-size:clamp(26px,6vw,54px); margin:.25em 0 .15em; }
+.hero-sub { color:var(--muted); margin:.2em 0 1.1em; }
+.hero-floaties { margin-top:22px; display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.hero-floaties img { height:52px; filter: drop-shadow(2px 3px 0 rgba(0,0,0,.5)); }
+
+/* ---------- cards / slots ---------- */
+.item, .review {
+  background: var(--panel-2); border:3px solid #0c0c0d;
+  box-shadow: inset 2px 2px 0 var(--lt), inset -2px -2px 0 var(--dk);
+  padding:12px 14px; margin:10px 0;
+}
+.item { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.item-icon { height:40px; vertical-align:middle; margin-right:10px; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.4)); }
+.price { color: var(--green); } .lock { color: var(--gold); }
+
+.page-icon { height:72px; float:right; margin:0 0 10px 14px; filter: drop-shadow(2px 3px 0 rgba(0,0,0,.5)); }
+
+/* ---------- inputs ---------- */
+input[type="text"], input:not([type]), input[name], textarea {
+  font-family:inherit; color:var(--text); background:#1b1c20; border:3px solid #0a0a0c;
+  box-shadow: inset 2px 2px 0 var(--dk); padding:8px 10px; border-radius:0; outline:none;
+}
+input:focus, textarea:focus { border-color: var(--green-2); }
+
+pre, code { background:#121317; color:var(--green); border:2px solid #0a0a0c; padding:2px 6px; }
+pre { padding:12px; overflow:auto; box-shadow: inset 2px 2px 0 var(--dk); }
+
+.avatar { width:72px; height:72px; border:3px solid #0c0c0d; background:#1b1c20;
+  box-shadow: inset 2px 2px 0 var(--lt), inset -2px -2px 0 var(--dk); }
+.mayor-notice { color:var(--gold); border-left:6px solid var(--gold); padding:8px 12px;
+  margin-top:14px; background: rgba(255,170,0,.08); }
+.waf { color:var(--red); text-shadow:1px 1px 0 var(--shadow); }
+#forge-result, #result { background:#11210f; border:3px solid #0c0c0d; padding:12px; margin-top:14px;
+  box-shadow: inset 2px 2px 0 var(--dk); white-space:pre-wrap; }
+
+/* ---------- village wares grid (home + search) ---------- */
+.ware-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px,1fr)); gap:10px; margin:10px 0 4px; }
+.ware {
+  display:block; text-decoration:none; color:inherit; cursor:pointer;
+  text-align:center; padding:10px 6px; background:var(--panel-2); border:3px solid #0c0c0d;
+  box-shadow: inset 2px 2px 0 var(--lt), inset -2px -2px 0 var(--dk);
+}
+.ware:hover { filter:brightness(1.18); border-color: var(--green-2); }
+.ware img { height:48px; display:block; margin:0 auto 6px; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.4)); }
+.ware span { font-size:12px; color:var(--muted); }
+
+/* ---------- review author avatar ---------- */
+.review { display:flex; align-items:flex-start; gap:10px; }
+.review-av { height:36px; width:36px; flex:0 0 auto; image-rendering:pixelated;
+  border:2px solid #0c0c0d; background:#1b1c20; }

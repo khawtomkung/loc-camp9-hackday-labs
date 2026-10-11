@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Village Trading Hub{% endblock %}
+{% block content %}
+  <section class="hero">
+    <img class="hero-logo" src="/assets/img/Minecraft.png" alt="Minecraft">
+    <h1 class="hero-title glow">Village Trading Hub</h1>
+    <p class="hero-sub">Trade emeralds for rare goods with the village folk.</p>
+    <a class="btn-primary" href="/search">Enter the Market &rsaquo;</a>
+    <div class="hero-floaties">
+      <img src="/assets/img/Emerald.png" alt="">
+      <img src="/assets/img/Diamond_Sword.png" alt="">
+      <img src="/assets/img/Enchanted_Book.png" alt="">
+      <img src="/assets/img/Villager_Librarian.webp" alt="">
+      <img src="/assets/img/Diamond_Pickaxe.png" alt="">
+      <img src="/assets/img/Bread.png" alt="">
+    </div>
+  </section>
+
+  <h3>📦 Live Market</h3>
+  <div id="market"></div>
+  <div id="stall">Loading trades...</div>
+
+  {% include "_wares.html" %}
+
+  {# JS-1: trading.js (leaked comment) · JS-2: trading_logic.min.js (ships its .map) #}
+  <script src="/assets/js/trading.js"></script>
+  <script src="/assets/js/trading_logic.min.js"></script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Cleric's Vault — Village Trading Hub{% endblock %}
+{% block content %}
+  <img class="page-icon" src="/assets/img/Ender_Pearl.png" alt="">
+  <h1>🔒 Cleric's Vault</h1>
+  <p>The village cleric sealed a token inside this vault. The unlock ritual is
+     written in an ancient tongue that no villager can read...</p>
+  <p><em>"What you keep in your own pocket is never truly hidden."</em></p>
+  <!-- vault.js seals the token into Local Storage and defines the unlock ritual -->
+  <script>window.__ct = "{{ vault_token }}";</script>
+  <script src="/assets/js/vault.js"></script>
+{% endblock %}

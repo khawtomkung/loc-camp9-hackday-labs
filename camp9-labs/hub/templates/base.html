@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Village Trading Hub{% endblock %}</title>
+  <link rel="stylesheet" href="/assets/css/minecraft.css">
+  {# base has NO inline <script> (lab.txt §1). Pages add their own head via this block. #}
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {# Nav links to EVERY page so the Admin Bot's "click every link" traverses the app (lab.txt §2). #}
+  <nav>
+    <a href="/" class="nav-brand"><img class="nav-logo" src="/assets/img/Minecraft.png" alt="Village Trading Hub"></a>
+    <a href="/search">Search</a>
+    <a href="/market">Market</a>
+    <a href="/enchant">Enchant</a>
+    <a href="/trade">Trade</a>
+    <a href="/reviews">Reviews</a>
+    <a href="/profile">Profile</a>
+    <a href="/forge">Forge</a>
+    <a href="/vault">Vault</a>
+    <a href="/craft">Craft</a>
+    <a href="/admin">Admin</a>
+    <span class="nav-spacer"></span>
+    {% if user %}<span class="nav-user">{{ user }}</span> <a href="/logout" class="btn-ghost">Logout</a>{% else %}<a href="/login" class="btn-ghost">Login</a>{% endif %}
+  </nav>
+  <hr>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

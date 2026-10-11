@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{# lab.txt §4.1 — the `| safe` filters ARE the bug. NO CSP header on this route. #}
+{% block head %}
+  <script>
+    {# flags are base64 (computed server-side from secrets) so `LOC9{` is NOT plaintext in view-source
+       and NOT in this repo — you must run JS (Console or injected) to read them #}
+    window.signFlag   = atob("{{ sign_b64 }}");    {# XSS-1 #}
+    window.secretFlag = atob("{{ secret_b64 }}");  {# XSS-2 #}
+    {% if guard %}window.golemFlag = atob("{{ golem_b64 }}");{% endif %}  {# XSS-4 #}
+  </script>
+{% endblock %}
+{% block content %}
+  <h2>Item Search{% if guard %} <small>(🛡️ Iron Golem guard ON)</small>{% endif %}</h2>
+  {% if blocked %}<p class="waf">🛡️ The Iron Golem blocked your request.</p>{% endif %}
+  <h3>Results for: {{ q | safe }}</h3>                    {# HTML-body context  -> XSS-1 #}
+  <form>
+    <input name="q" value="{{ q | safe }}">               {# attribute context  -> XSS-2 #}
+    {% if guard %}<input type="hidden" name="guard" value="on">{% endif %}
+    <button>Search</button>
+  </form>
+{% endblock %}

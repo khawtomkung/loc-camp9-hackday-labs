@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Enchantment Table{% endblock %}
+{# lab.txt §4.2 — flag assigned BEFORE the injectable line. NO CSP header on this route. #}
+{% block head %}
+  <script>
+    window.enchantFlag = atob("{{ enchant_b64 }}");  {# base64 computed server-side; not plaintext in source/repo #}
+    function renderItem(x){ try { document.getElementById('item').textContent = 'Enchanting: ' + x; } catch (e) {} }
+  </script>
+{% endblock %}
+{% block content %}
+  <img class="page-icon" src="/assets/img/Enchanting_Table.png" alt="">
+  <h2>✨ Enchantment Table</h2>
+  <div id="item"></div>
+  <script>
+    var item = '{{ q | safe }}';     {# JS single-quoted-string context -> XSS-3 #}
+    renderItem(item);
+  </script>
+  <form><input name="q" placeholder="item name"><button>Enchant</button></form>
+{% endblock %}

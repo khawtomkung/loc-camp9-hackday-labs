@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Crafting Table{% endblock %}
+{# EXTRA / final boss. NO CSP here (inline craft script runs). Chain: web_lhf + crypto + XSS. #}
+{% block head %}
+  <style>
+    .craft-wrap{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+    .craft-grid{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);
+                gap:6px;padding:10px;background:#8b8b8b;border:4px solid #373737;border-radius:4px}
+    .craft-cell{width:72px;height:72px;background:#c6c6c6;border:3px solid #373737;
+                display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box}
+    .craft-cell img{width:52px;height:52px;image-rendering:pixelated;pointer-events:none}
+    .craft-cell.over{outline:3px solid #ffd93b}
+    .palette{display:flex;flex-wrap:wrap;gap:8px;max-width:320px}
+    .pal-item{width:64px;height:64px;background:#c6c6c6;border:3px solid #373737;display:flex;
+              flex-direction:column;align-items:center;justify-content:center;cursor:grab;box-sizing:border-box}
+    .pal-item img{width:40px;height:40px;image-rendering:pixelated;pointer-events:none}
+    .pal-item small{font-size:9px;line-height:1;text-align:center;pointer-events:none}
+    .pal-item.armed{outline:3px solid #ffd93b;background:#dfe7b0}
+    .craft-arrow{font-size:40px;align-self:center}
+    .craft-out{width:88px;height:88px;background:#c6c6c6;border:3px solid #373737;
+               display:flex;align-items:center;justify-content:center}
+    .craft-out img{width:64px;height:64px;image-rendering:pixelated}
+    #craftResult{margin-top:14px}
+    #craftResult .flag{font-size:18px;font-weight:bold}
+    .craft-ok{color:#2e7d32}.craft-bad{color:#b23b3b}
+  </style>
+{% endblock %}
+{% block content %}
+  {# web_lhf clue -> must survive to view-source, so it is an HTML comment (not a Jinja one). #}
+  <!-- enchanter's lost scroll is sealed at:  /forge-recipes/codex.recipe
+       it is scrambled: Base64, then a single-byte XOR (brute-force the key in CyberChef).
+       you also need the Mayor's Enchant Seal — it is shown only on the /admin dashboard. -->
+  <img class="page-icon" src="/assets/img/Crafting_Table.png" alt="">
+  <h2>🛠️ Crafting Table — Enchanter's Codex</h2>
+  <p>Only a true enchanter can forge the <b>Enchanted Book of the Village Codex</b>.
+     Recover the lost recipe, bring the Mayor's enchant seal, then arrange the ingredients
+     in the 3×3 grid exactly as the Codex demands.</p>
+
+  <div class="craft-wrap">
+    <div>
+      <div class="craft-grid" id="grid">
+        {% for i in range(9) %}<div class="craft-cell" data-slot="{{ i }}"></div>{% endfor %}
+      </div>
+      <p style="font-size:12px;opacity:.8">Drag an item in, or click an item then click a slot. Click a filled slot to clear it.</p>
+    </div>
+    <div class="craft-arrow">➜</div>
+    <div class="craft-out" id="outSlot" title="output"></div>
+  </div>
+
+  <h3>Ingredients</h3>
+  <div class="palette" id="palette">
+    <div class="pal-item" draggable="true" data-item="diamond"><img src="/assets/img/Diamond.png"><small>Diamond</small></div>
+    <div class="pal-item" draggable="true" data-item="emerald"><img src="/assets/img/Emerald.png"><small>Emerald</small></div>
+    <div class="pal-item" draggable="true" data-item="ender_pearl"><img src="/assets/img/Ender_Pearl.png"><small>Ender Pearl</small></div>
+    <div class="pal-item" draggable="true" data-item="golden_apple"><img src="/assets/img/Enchanted_Golden_Apple.png"><small>Ench. G. Apple</small></div>
+    <div class="pal-item" draggable="true" data-item="apple"><img src="/assets/img/Apple.png"><small>Apple</small></div>
+    <div class="pal-item" draggable="true" data-item="bread"><img src="/assets/img/Bread.png"><small>Bread</small></div>
+    <div class="pal-item" draggable="true" data-item="feather"><img src="/assets/img/Feather.png"><small>Feather</small></div>
+    <div class="pal-item" draggable="true" data-item="bone"><img src="/assets/img/Bone.png"><small>Bone</small></div>
+  </div>
+
+  <h3>Mayor's Enchant Seal</h3>
+  <input id="seal" placeholder="paste the seal from the Mayor dashboard" style="width:320px">
+  <div style="margin-top:12px">
+    <button class="btn-primary" id="craftBtn">⚒️ Craft</button>
+    <button class="btn-ghost" id="clearBtn">Clear grid</button>
+  </div>
+  <div id="craftResult"></div>
+
+  <script>
+    var IMG = {
+      diamond:"Diamond.png", emerald:"Emerald.png", ender_pearl:"Ender_Pearl.png",
+      golden_apple:"Enchanted_Golden_Apple.png", apple:"Apple.png", bread:"Bread.png",
+      feather:"Feather.png", bone:"Bone.png"
+    };
+    var armed = null;
+    function setCell(cell, id){
+      if (id && IMG[id]) { cell.dataset.item = id; cell.innerHTML = '<img src="/assets/img/'+IMG[id]+'" alt="'+id+'">'; }
+      else { cell.dataset.item = ""; cell.innerHTML = ""; }
+    }
+    // palette: click to arm, or drag
+    document.querySelectorAll('.pal-item').forEach(function(p){
+      p.addEventListener('click', function(){
+        if (armed === p) { p.classList.remove('armed'); armed = null; }
+        else { if (armed) armed.classList.remove('armed'); p.classList.add('armed'); armed = p; }
+      });
+      p.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', p.dataset.item); });
+    });
+    // cells: drop / click-to-place / click-to-clear
+    document.querySelectorAll('.craft-cell').forEach(function(cell){
+      cell.addEventListener('dragover', function(e){ e.preventDefault(); cell.classList.add('over'); });
+      cell.addEventListener('dragleave', function(){ cell.classList.remove('over'); });
+      cell.addEventListener('drop', function(e){
+        e.preventDefault(); cell.classList.remove('over');
+        setCell(cell, e.dataTransfer.getData('text/plain'));
+      });
+      cell.addEventListener('click', function(){
+        if (armed) { setCell(cell, armed.dataset.item); }
+        else { setCell(cell, ""); }   // click a filled slot with nothing armed -> clear
+      });
+    });
+    document.getElementById('clearBtn').addEventListener('click', function(){
+      document.querySelectorAll('.craft-cell').forEach(function(c){ setCell(c, ""); });
+      document.getElementById('outSlot').innerHTML = "";
+      document.getElementById('craftResult').innerHTML = "";
+    });
+    document.getElementById('craftBtn').addEventListener('click', function(){
+      var grid = [];
+      document.querySelectorAll('.craft-cell').forEach(function(c){ grid.push(c.dataset.item || ""); });
+      var seal = document.getElementById('seal').value;
+      fetch('/api/craft', {method:'POST', headers:{'Content-Type':'application/json'},
+                           body: JSON.stringify({grid: grid, seal: seal})})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          var out = document.getElementById('outSlot');
+          var res = document.getElementById('craftResult');
+          if (d.ok) {
+            out.innerHTML = '<img src="/assets/img/Enchanted_Book.png" alt="book">';
+            res.className = 'craft-ok';
+            res.innerHTML = '✨ You forged the <b>'+d.book+'</b>!<br><span class="flag">'+d.flag+'</span>';
+          } else {
+            out.innerHTML = "";
+            res.className = 'craft-bad';
+            res.textContent = '✗ ' + (d.error || 'Crafting failed.');
+          }
+        })
+        .catch(function(){ document.getElementById('craftResult').textContent = 'Network error.'; });
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{# clickable "village wares" grid -> /market?wares=<name> (the SQLi lookup).
+   Hidden wares (Emerald, Golden Apple) are intentionally NOT listed — found via SQLi. #}
+<h3>🪙 Village Wares</h3>
+<div class="ware-grid">
+  {% for w in [
+      {'img':'Diamond.png','name':'Diamond'},
+      {'img':'Diamond_Sword.png','name':'Diamond Sword'},
+      {'img':'Diamond_Pickaxe.png','name':'Diamond Pickaxe'},
+      {'img':'Enchanted_Book.png','name':'Enchanted Book'},
+      {'img':'Bread.png','name':'Bread'},
+      {'img':'Apple.png','name':'Apple'},
+      {'img':'Carrot.png','name':'Carrot'},
+      {'img':'Wheat.png','name':'Wheat'}
+  ] %}
+  <a class="ware" href="/market?wares={{ w.name | urlencode }}"><img src="/assets/img/{{ w.img }}" alt=""><span>{{ w.name }}</span></a>
+  {% endfor %}
+</div>
