@@ -8,6 +8,7 @@
 # You can also provide any flag via an environment variable of the same name
 # (e.g. JS1_FLAG=...), which overrides this file. Keep real values OUT of git.
 SECRETS = {
+    "ARENA_ADMIN_PIN": "CHANGE-ME-teacher-reset",   # teacher-only: POST /arena/reset to clear boards+scoreboard
     "MAYOR_PASSWORD": "change_me_mayor_password",
     "ENCHANT_SEAL":   "SET-ME-ENCHANT-SEAL",
 

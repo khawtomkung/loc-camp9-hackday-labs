@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}สมุดเยี่ยมของ {{ name }}{% endblock %}
+{% block head %}<style>
+  .trap-box{background:#ffe9a8;border:3px solid #a6761d;padding:12px;margin:14px 0}
+  .trap-box textarea{width:100%;height:60px;font-family:monospace;font-size:12px}
+</style>{% endblock %}
+{% block content %}
+  {% if not exists %}
+    <h2>ไม่พบผู้เล่น "{{ name }}"</h2>
+    <p><a href="/arena">← กลับ Arena</a></p>
+  {% else %}
+  <img class="page-icon" src="/assets/img/NPC.webp" alt="">
+  <h2>📓 สมุดเยี่ยมของ {{ name }}</h2>
+
+  {% if me %}
+    {% if me != name %}
+    <div class="trap-box">
+      <b>🪤 วางกับดักขโมยตั๋วของ {{ name }}</b>
+      <p style="margin:4px 0">นี่คือ "กับดัก" สำเร็จรูป (ใส่ชื่อคุณให้แล้ว) — กดปุ่มเพื่อแอบวางบนสมุดของ {{ name }}
+         พอ {{ name }} เปิดดูสมุดตัวเอง ตั๋วของเขาจะวิ่งเข้ากระเป๋า Loot ของคุณ:</p>
+      <form method="post">
+        <textarea name="body">{{ trap }}</textarea>
+        <button class="btn-primary">🪤 วางกับดัก</button>
+      </form>
+      <p style="margin:4px 0;font-size:12px">💡 มันคือรูปภาพปลอม <code>&lt;img&gt;</code> ที่พอโหลดไม่ได้ (<code>onerror</code>)
+         จะสั่งให้เบราว์เซอร์ของเหยื่อส่ง <code>document.cookie</code> มาหาเรา — นี่แหละ "เขี้ยวเล็บของ XSS"</p>
+    </div>
+    {% else %}
+    <p class="waf">นี่คือสมุดของคุณเอง — ระวัง! ถ้ามีกับดักอยู่ข้างล่าง เปิดหน้านี้ตั๋วคุณก็หลุดแล้ว 😅</p>
+    {% endif %}
+
+    <form method="post">
+      <input name="body" placeholder="เขียนข้อความปกติถึง {{ name }}..." size="48">
+      <button class="btn-ghost">เซ็นปกติ</button>
+    </form>
+  {% else %}
+    <p><a href="/arena">ล็อกอิน</a> ก่อนถึงจะเซ็น/วางกับดักได้</p>
+  {% endif %}
+
+  <h3>ข้อความในสมุด</h3>
+  {% for e in entries %}
+    <div class="review">
+      <img class="review-av" src="/assets/img/NPC.webp" alt="">
+      <div><b>{{ e.author }}</b>: {{ e.body | safe }}</div>
+    </div>
+  {% else %}
+    <p>ยังไม่มีใครเซ็น — ไปเป็นคนแรกสิ</p>
+  {% endfor %}
+
+  <p><a href="/arena">← Arena</a> · <a href="/arena/me">หน้าของฉัน</a></p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Arena — เกมขโมยตั๋ว{% endblock %}
+{% block head %}<style>
+  .arena-forms{display:flex;gap:24px;flex-wrap:wrap;margin:12px 0}
+  .arena-forms form{background:#c6c6c6;border:3px solid #373737;padding:12px}
+  .arena-forms input{display:block;margin:6px 0;width:200px}
+  .steps{background:#dfe7b0;border:3px solid #373737;padding:10px 10px 10px 28px;margin:12px 0}
+  .steps li{margin:4px 0}
+</style>{% endblock %}
+{% block content %}
+  <img class="page-icon" src="/assets/img/Ender_Pearl.png" alt="">
+  <h2>🎟️ เกมขโมยตั๋ว (Cookie) เพื่อน</h2>
+  <p><b>ไอเดีย:</b> เวลาเราล็อกอินเว็บ เว็บจะแจก "ตั๋ว" (cookie) ให้ ใครถือตั๋วเราไป = ปลอมเป็นเราได้
+     เกมนี้ให้เราแอบวาง "กับดัก" ไว้บนสมุดเยี่ยมของเพื่อน พอเพื่อนเปิดดู ตั๋วของเพื่อนจะวิ่งมาหาเรา
+     แล้วเราเอาตั๋วนั้นไปเปิดดู <b>flag ลับของเพื่อน</b> ได้</p>
+  <p class="waf">⚠️ เล่นในห้อง/เน็ตปิดเท่านั้น · ใช้บัญชีเล่น ๆ (อย่าใช้รหัสจริง) · ทุกคนยินยอมเล่นด้วยกัน</p>
+
+  <ol class="steps">
+    <li>สมัครชื่อเล่น + PIN (ด้านล่าง)</li>
+    <li>เข้าหน้าเพื่อนที่ <code>/arena/u/ชื่อเพื่อน</code> → กดปุ่ม <b>"วางกับดัก"</b> (payload เติมให้แล้ว)</li>
+    <li>ตะโกนชวนเพื่อน ๆ ให้ไป "เปิดดูสมุดเยี่ยมตัวเอง" (กับดักจะทำงานตอนเขาเปิด)</li>
+    <li>เปิดหน้า <b>🎒 Loot</b> ของเรา → จะเห็นตั๋ว (cookie) ของเพื่อนที่ติดกับดัก</li>
+    <li>กด <b>"ใช้ตั๋วนี้"</b> → เห็น flag ลับของเพื่อน → กด <b>Claim</b> ขึ้นกระดานคะแนน 🏆</li>
+  </ol>
+
+  {% if error %}<p class="waf">✗ {{ error }}</p>{% endif %}
+  {% if me %}
+    <p>ล็อกอินเป็น <b>{{ me }}</b> แล้ว — ไป <a href="/arena/me">หน้าของฉัน →</a></p>
+  {% else %}
+  <div class="arena-forms">
+    <form method="post" action="/arena/register">
+      <h3>① สมัครเล่น (ครั้งแรก)</h3>
+      <input name="name" placeholder="ชื่อเล่น (a-z 0-9 _)" autocomplete="off">
+      <input name="pin" type="text" placeholder="PIN เล่น ๆ" autocomplete="off">
+      <button class="btn-primary">เริ่มเล่น</button>
+    </form>
+    <form method="post" action="/arena/login">
+      <h3>เข้าเล่นต่อ</h3>
+      <input name="name" placeholder="ชื่อเล่น" autocomplete="off">
+      <input name="pin" type="text" placeholder="PIN" autocomplete="off">
+      <button class="btn-ghost">Login</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <h3>🎯 เพื่อนในห้อง ({{ users|length }})</h3>
+  {% if users %}
+  <div class="ware-grid">
+    {% for u in users %}<a class="ware" href="/arena/u/{{ u | urlencode }}"><span>{{ u }}</span></a>{% endfor %}
+  </div>
+  {% else %}<p>ยังไม่มีใครสมัคร — เป็นคนแรกเลย!</p>{% endif %}
+  <p><a href="/arena/scoreboard">🏆 กระดานคะแนน</a></p>
+{% endblock %}

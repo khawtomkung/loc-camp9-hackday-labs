@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Arena — กระดานคะแนน{% endblock %}
+{% block content %}
+  <h2>🏆 กระดานคะแนน — เกมขโมยตั๋ว</h2>
+  {% if msg %}<p style="color:{{ '#2e7d32' if msg[0]=='ok' else '#b23b3b' }};font-weight:bold">{{ msg[1] }}</p>{% endif %}
+  {% if board %}
+  <table style="border-collapse:collapse" border="1" cellpadding="6">
+    <tr><th>อันดับ</th><th>ผู้เล่น</th><th>แฮ็กได้</th><th>เหยื่อ</th></tr>
+    {% for a, n in board %}
+      <tr><td>{{ loop.index }}</td><td>{{ a }}</td><td>{{ n }}</td><td>{{ detail[a] | join(', ') }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>ยังไม่มีใครแฮ็กสำเร็จ — ลงมือเลย!</p>{% endif %}
+  <p>{% if me %}<a href="/arena/me">← หน้าของฉัน</a> · <a href="/arena/loot">🎒 Loot</a>{% else %}<a href="/arena">← Arena</a>{% endif %}</p>
+{% endblock %}

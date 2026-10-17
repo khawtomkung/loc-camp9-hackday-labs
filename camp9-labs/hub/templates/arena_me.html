@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Arena — {{ me }}{% endblock %}
+{% block content %}
+  <h2>🙋 สวัสดี {{ me }}</h2>
+
+  <p>🔒 <b>flag ลับของคุณ:</b> <code>{{ flag }}</code></p>
+  <p class="waf">ถ้าเพื่อนขโมย "ตั๋ว" (cookie <code>arena_session</code>) ของคุณไปได้ เขาจะเปิดหน้านี้เป็นคุณแล้วเห็น flag นี้
+     — ตั๋วนี้ตั้งใจทำให้ JavaScript อ่านได้ (ไม่ HttpOnly) เพื่อการเรียนรู้</p>
+
+  <p>🔔 สมุดเยี่ยมของคุณมี <b>{{ sig_count }}</b> ข้อความ —
+     <a href="/arena/u/{{ me }}"><b>เปิดดูว่าใครมาเซ็น →</b></a>
+     <span class="waf">(ถ้ามีใครแอบวางกับดักไว้ เปิดปุ๊บตั๋วหลุดปั๊บ!)</span></p>
+
+  <p>🎒 คุณขโมยตั๋วมาได้ <b>{{ loot_count }}</b> ใบ — <a href="/arena/loot"><b>เปิดกระเป๋า Loot →</b></a></p>
+
+  <h3>✍️ ไปวางกับดักบนสมุดเพื่อน</h3>
+  {% if users|length > 1 %}
+  <div class="ware-grid">
+    {% for u in users %}{% if u != me %}<a class="ware" href="/arena/u/{{ u | urlencode }}"><span>{{ u }}</span></a>{% endif %}{% endfor %}
+  </div>
+  {% else %}<p>ยังไม่มีเพื่อนคนอื่นสมัคร — รอเพื่อน ๆ ก่อน</p>{% endif %}
+
+  <p><a href="/arena/scoreboard">🏆 กระดานคะแนน</a> · <a href="/arena/logout">ออกจากระบบ</a></p>
+{% endblock %}

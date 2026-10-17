@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Arena — Loot ของ {{ me }}{% endblock %}
+{% block content %}
+  <h2>🎒 กระเป๋า Loot ของ {{ me }}</h2>
+
+  {% if revealed %}
+    {% if revealed.ok %}
+      <div style="background:#cde9c6;border:3px solid #2e7d32;padding:12px;margin:12px 0">
+        <b>🎉 ใช้ตั๋วสำเร็จ! นี่คือ flag ลับของ {{ revealed.victim }}:</b>
+        <p><code style="font-size:16px">{{ revealed.flag }}</code></p>
+        <form method="post" action="/arena/claim">
+          <input type="hidden" name="flag" value="{{ revealed.flag }}">
+          <button class="btn-primary">🏆 Claim — บันทึกว่าแฮ็ก {{ revealed.victim }} สำเร็จ</button>
+        </form>
+      </div>
+    {% else %}
+      <p class="waf">✗ {{ revealed.text }}</p>
+    {% endif %}
+  {% endif %}
+
+  <p>ตั๋ว (cookie) ที่ดักได้: <b>{{ loot|length }}</b> ใบ</p>
+  {% for c in loot %}
+    <div class="review">
+      <div style="font-family:monospace;font-size:12px;word-break:break-all;flex:1">{{ c }}</div>
+      <form method="post" action="/arena/peek" style="margin-top:6px">
+        <input type="hidden" name="cookie" value="{{ c }}">
+        <button class="btn-primary">🎭 ใช้ตั๋วนี้ดู flag เหยื่อ</button>
+      </form>
+    </div>
+  {% else %}
+    <p>ยังไม่มีตั๋วติดกับดัก — ไปวางกับดักบนสมุดเพื่อน แล้วชวนเขาเปิดดูสมุดตัวเอง</p>
+  {% endfor %}
+
+  <p><a href="/arena/me">← หน้าของฉัน</a> · <a href="/arena/scoreboard">🏆 กระดานคะแนน</a></p>
+{% endblock %}

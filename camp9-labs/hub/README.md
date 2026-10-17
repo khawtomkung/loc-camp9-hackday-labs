@@ -54,6 +54,16 @@ point values, hints, attachments, and prerequisites (the Extra unlocks after all
 point every challenge's connection info at this app's public host. The flag for each challenge is
 whatever you set in `_secrets.py`.
 
+## Arena — classroom PvP "cookie heist" (separate activity, beginner-friendly)
+A self-contained stored-XSS game at **`/arena`** — NOT one of the 14 challenges and not in CTFd; meant
+for a live class that hasn't learned XSS yet. Students self-register a throwaway name+PIN → get a
+non-HttpOnly `arena_session` cookie + a private flag at `/arena/me`, then steal each other's cookies by
+planting a **ready-made guestbook payload** (pre-filled on each classmate's `/arena/u/<name>` board — one
+click). A built-in catcher (`/arena/steal`) collects stolen cookies on the attacker's **`/arena/loot`**
+page, so **no webhook.site or DevTools is needed**; "use a ticket" to read the victim's flag and Claim it
+on `/arena/scoreboard`. Teacher reset: `POST /arena/reset` with `pin=ARENA_ADMIN_PIN` (from `_secrets.py`).
+Closed lab network only; use throwaway accounts.
+
 ## Notes
 - `tools/gen_crypto.py` is the single source of truth for the encoded assets — re-run it whenever
   you change a flag in `_secrets.py`.

