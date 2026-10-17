@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Reviews{% endblock %}
-{# Review bodies render RAW ({{ ... | safe }}) so a <script src> payload lands in the DOM.
-   /reviews carries CSP script-src 'self' (set in the route), which kills inline <script>/onerror
-   -> that is the "review box is locked down" dead-end. base.html + this file keep NO inline script. #}
+{# Review bodies are ESCAPED (no |safe). This board exists so a player can post a review — their
+   author->profile link then appears here and the Admin Bot (mayor) follows it to the attacker's
+   profile, where the avatar sink fires. The injection point is the PROFILE avatar, not this box. #}
 {% block content %}
   <h2>📖 Book &amp; Quill — Reviews</h2>
 
@@ -18,10 +18,7 @@
   {% for r in reviews %}
     <div class="review">
       <img class="review-av" src="/assets/img/NPC.webp" alt="">
-      <div><b><a href="/profile/{{ r.author | urlencode }}">{{ r.author }}</a></b>: {{ r.body | safe }}</div>
+      <div><b><a href="/profile/{{ r.author | urlencode }}">{{ r.author }}</a></b>: {{ r.body }}</div>
     </div>
   {% endfor %}
-
-  {# XSS-6 flag: rendered ONLY in the mayor's view; the JSONP-bypass script exfiltrates this text #}
-  {% if is_mayor %}<div class="mayor-notice">Mayor notice: {{ xss6_flag }}</div>{% endif %}
 {% endblock %}

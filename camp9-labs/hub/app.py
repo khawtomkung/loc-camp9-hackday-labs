@@ -9,8 +9,7 @@
 import os
 import re
 import base64
-import sqlite3
-from flask import Flask, request, render_template, redirect, make_response, abort, jsonify, send_from_directory
+from flask import Flask, request, render_template, redirect, make_response, jsonify, send_from_directory
 
 app = Flask(__name__, static_url_path="", static_folder="static")
 app.config["SECRET_KEY"] = "change-me-at-deploy"  # not used for auth; see lab.txt §3
@@ -88,45 +87,22 @@ TRADE_ITEMS = [
     {"id": "emerald_block", "name": "Emerald Block",           "price": 9,  "mayor_only": False},
     {"id": "diamond_sword", "name": "Enchanted Diamond Sword", "price": 64, "mayor_only": True},
 ]
-# --- XSS stored ---
-XSS5_FLAG = _sec("XSS5_FLAG", "LOC9{REDACTED_set_in__secrets}")   # /admin, mayor session only (reached via cookie theft)
-XSS6_FLAG = _sec("XSS6_FLAG", "LOC9{REDACTED_set_in__secrets}")   # .mayor-notice on /reviews, mayor view only (JSONP exfil)
+# NOTE: standalone Stored-XSS (XSS-5/6) and the SQLi "Village Market" were REMOVED as challenges.
+# The stored-XSS *mechanism* — non-HttpOnly mayor cookie, the /profile avatar sink, the Admin Bot,
+# and the mayor-only /admin page — is KEPT only because the EXTRA craft challenge reuses it to reveal
+# the Enchant Seal. There are no XSS5/XSS6/SQLi flags anymore.
 
-# --- SQLi (Village Market /market?wares=) : hybrid. Hidden wares give the clue; UNION pulls the flag. ---
-SQLI_FLAG = _sec("SQLI_FLAG", "LOC9{REDACTED_set_in__secrets}")
-_MARKET_SEED = (
-    "CREATE TABLE wares(name TEXT, description TEXT, hidden INT);"
-    "INSERT INTO wares VALUES"
-    " ('Diamond','A flawless gem worth 9 emeralds.',0),"
-    " ('Diamond Sword','Sharp and sturdy, 64 emeralds.',0),"
-    " ('Diamond Pickaxe','Mines the hardest stone.',0),"
-    " ('Enchanted Book','Whispers an ancient enchantment.',0),"
-    " ('Bread','Fresh from the farmer, 2 emeralds.',0),"
-    " ('Apple','Crisp and sweet.',0),"
-    " ('Carrot','Good for horses and villagers.',0),"
-    " ('Wheat','A bundle of golden wheat.',0),"
-    " ('Emerald','Reserved for the Mayor - not on public display.',1),"
-    " ('Golden Apple','Rumor: the Mayor hid the vault key in a table named secret_vault (column flag).',1);"
-    "CREATE TABLE secret_vault(name TEXT, flag TEXT);"
-    "INSERT INTO secret_vault VALUES ('Mayor Vault Key','%s');" % SQLI_FLAG
-)
-
-# --- EXTRA (final boss, hardest): Crafting Table. Needs ALL three skills chained:
+# --- EXTRA (final boss): Crafting Table. Chains web_lhf + crypto + a stored-XSS session hijack:
 #     web_lhf  -> find the hidden recipe scroll  /forge-recipes/codex.recipe
 #     crypto   -> decode it (From Base64, then XOR key 0x3b)  => the 3x3 grid pattern
-#     XSS      -> the Mayor's Enchant Seal is shown ONLY on /admin (reached via XSS-5 cookie theft)
+#     XSS      -> the Mayor's Enchant Seal is shown ONLY on /admin (reach it by stealing the mayor
+#                 cookie: plant an onerror payload in the /profile avatar, let the Admin Bot load it)
 #     then arrange the 3x3 grid at /craft + paste the seal -> forge the Enchanted Book (flag). ---
 CRAFT_FLAG = _sec("CRAFT_FLAG", "LOC9{REDACTED_set_in__secrets}")
 ENCHANT_SEAL = _sec("ENCHANT_SEAL", "SET-ME-ENCHANT-SEAL")   # on /admin only -> requires XSS-5
 CRAFT_RECIPE = SECRETS.get("CRAFT_RECIPE", ["diamond", "ender_pearl", "diamond",
                                             "emerald", "golden_apple", "emerald",
                                             "diamond", "ender_pearl", "diamond"])
-
-
-def market_db():
-    con = sqlite3.connect(":memory:")   # fresh per request -> thread-safe, tiny seed
-    con.executescript(_MARKET_SEED)
-    return con
 
 
 def current_user():
@@ -182,9 +158,8 @@ def admin():
     # XSS-5 target: session-ride here with the stolen mayor cookie to read the flag.
     if role_of(current_user()) != "mayor":
         return render_template("stub.html", title="Admin", user=current_user(),
-                               note="403 — mayor only. (Steal the mayor cookie via XSS-5, then session-ride here.)"), 403
-    return render_template("admin.html", user=current_user(), flag=XSS5_FLAG,
-                           enchant_seal=ENCHANT_SEAL)
+                               note="403 — mayor only. (Steal the mayor cookie via the stored-XSS avatar sink, then session-ride here.)"), 403
+    return render_template("admin.html", user=current_user(), enchant_seal=ENCHANT_SEAL)
 
 
 # ---------------------------------------------------------------------------
@@ -204,24 +179,6 @@ def search():
     # search.html reflects q UNESCAPED in BOTH body and attribute. NO CSP on this route (intentional).
     return render_template("search.html", q=q, guard=guard, blocked=blocked, user=current_user(),
                            sign_b64=_b64(XSS1_FLAG), secret_b64=_b64(XSS2_FLAG), golem_b64=_b64(XSS4_FLAG))
-
-
-# --- SQLi: Village Market. Click a ware -> ?wares=<name> -> raw string-concat query = injectable.
-#     Hybrid: `' OR 1=1 --` reveals hidden wares (a clue) -> UNION extracts the secret_vault flag. ---
-@app.route("/market")
-def market():
-    wares_q = request.args.get("wares")          # None until a ware is clicked / param supplied
-    result = err = None
-    if wares_q is not None:
-        con = market_db()
-        try:
-            cur = con.execute("SELECT name, description FROM wares WHERE name = '%s'" % wares_q)  # THE BUG
-            result = cur.fetchall()
-        except Exception as e:
-            err = str(e)                         # error-based disclosure (type ' and see)
-        finally:
-            con.close()
-    return render_template("market.html", wares_q=wares_q, result=result, err=err, user=current_user())
 
 
 @app.route("/enchant")
@@ -347,14 +304,15 @@ def api_trade():
 
 
 # ---------------------------------------------------------------------------
-# XSS — Stored. Spec: lab.txt §4.4-4.6, Part 2 [XSS-5], [XSS-6].
-#   XSS-5: avatar_url (stored, unescaped on /profile/<u>, NO CSP) -> onerror steals mayor cookie
-#          (Admin Bot) -> session-ride to /admin -> XSS5_FLAG.
-#   XSS-6: /reviews has CSP script-src 'self' (blocks inline), but a same-origin <script src>
-#          to the JSONP /api/weather executes -> exfil the mayor-only .mayor-notice (XSS6_FLAG).
+# Stored-XSS plumbing kept ONLY for the EXTRA challenge (no standalone XSS-5/XSS-6 anymore):
+#   /reviews   — the board where a player posts a review so their author->profile link appears,
+#                which is how the Admin Bot (mayor) reaches the attacker's profile.
+#   /profile/<u> — avatar_url is rendered UNESCAPED (the sink); an onerror payload steals the
+#                  non-HttpOnly mayor cookie when the bot views it. Review bodies are escaped.
+#   /admin     — mayor-only; shows the Enchant Seal used by EXTRA.
 # ---------------------------------------------------------------------------
 def save_review(author, body):
-    REVIEWS.append({"author": author, "body": body})   # stored RAW; CSP neutralizes inline on render
+    REVIEWS.append({"author": author, "body": body})   # body rendered ESCAPED on /reviews
 
 
 @app.route("/reviews", methods=["GET", "POST"])
@@ -365,11 +323,7 @@ def reviews():
             return redirect("/login")
         save_review(u, request.form.get("body", ""))
         return redirect("/reviews")
-    is_mayor = role_of(current_user()) == "mayor"
-    resp = make_response(render_template("reviews.html", reviews=REVIEWS, is_mayor=is_mayor,
-                                         user=current_user(), xss6_flag=XSS6_FLAG))
-    resp.headers["Content-Security-Policy"] = "script-src 'self'"   # the wall (XSS-6)
-    return resp
+    return render_template("reviews.html", reviews=REVIEWS, user=current_user())
 
 
 @app.route("/profile", methods=["GET", "POST"])
@@ -388,22 +342,16 @@ def my_profile():
 @app.route("/profile/<username>")
 def profile_public(username):
     prof = PROFILES.get(username, {"avatar_url": "", "bio": ""})
-    # avatar_url rendered UNESCAPED (XSS-5 sink); bio escaped. This route sets NO CSP header.
+    # avatar_url rendered UNESCAPED (the stored-XSS sink EXTRA relies on); bio escaped. NO CSP header.
     return render_template("profile_public.html", username=username, user=current_user(),
                            avatar_url=prof["avatar_url"], bio=prof["bio"])
 
 
-@app.route("/api/weather")
-def weather():
-    cb = request.args.get("callback", "showWeather")   # BUG: reflected verbatim (JSONP) = XSS-6 gadget
-    body = '%s({"weather":"clear","temp":21})' % cb
-    return make_response((body, 200, {"Content-Type": "application/javascript; charset=utf-8"}))
-
-
 # ---------------------------------------------------------------------------
-# EXTRA — Crafting Table (final boss). web_lhf + crypto + XSS chained.
+# EXTRA — Crafting Table (final boss). web_lhf + crypto + stored-XSS chained.
 #   The recipe scroll /forge-recipes/codex.recipe is a STATIC file (base64+XOR 0x3b).
-#   The enchant seal lives on /admin (XSS-5). /api/craft validates grid AND seal.
+#   The enchant seal lives on /admin (reach it via the stored-XSS mayor-cookie theft).
+#   /api/craft validates grid AND seal.
 # ---------------------------------------------------------------------------
 @app.route("/craft")
 def craft_page():

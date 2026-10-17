@@ -24,9 +24,6 @@ SECRETS = {
     "XSS2_FLAG": "LOC9{SET_ME_xss2}",
     "XSS3_FLAG": "LOC9{SET_ME_xss3}",
     "XSS4_FLAG": "LOC9{SET_ME_xss4}",
-    "XSS5_FLAG": "LOC9{SET_ME_xss5}",
-    "XSS6_FLAG": "LOC9{SET_ME_xss6}",
-    "SQLI_FLAG": "LOC9{SET_ME_sqli}",
     "CRAFT_FLAG": "LOC9{SET_ME_craft}",
 
     # EXTRA crafting recipe: the 3x3 grid (row by row) of item ids.

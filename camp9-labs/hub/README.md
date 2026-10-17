@@ -1,9 +1,9 @@
 # Village Trading Hub — CTF lab (reference implementation)
 
 A single Minecraft-themed web app (Flask) that hosts the LOC Camp 9 hackday Mini-CTF:
-**17 challenges** across JavaScript recon, Web Low-Hanging-Fruit, XSS (Reflected + Stored),
-a SQLi bonus, and a final crafting "extra". Students attack this app over the network and
-submit flags in CTFd.
+**14 challenges** across JavaScript recon (×4), Web Low-Hanging-Fruit (×5), reflected XSS (×4),
+and a final crafting "extra" that chains web_lhf + crypto + a stored-XSS session hijack. Students
+attack this app over the network and submit flags in CTFd.
 
 > **No flags or solutions in this repo.** Flags, the mayor credential, and the enchant seal are
 > **not** committed — they live in `_secrets.py` (gitignored) or environment variables, and the
@@ -44,13 +44,15 @@ In production put a reverse proxy / `docker -p 80:8000` in front of it.
 cd hub
 docker compose up --build        # Hub, the mayor Admin Bot (sweeps pages ~every 30s), and CTFd
 ```
-The Admin Bot is the "victim" for the Stored-XSS challenges; its mayor session cookie is
+The Admin Bot is the "victim" for the EXTRA challenge's stored-XSS step (steal the mayor cookie via
+the /profile avatar sink to read the Enchant Seal on /admin); its mayor session cookie is
 intentionally non-HttpOnly (that is the lesson). Configure its credentials via the same secrets.
 
 ## CTFd
-Create the categories (JS / Web-LHF / XSS / Bonus / Extra), add the 17 challenges with their
-point values, hints, attachments, and prerequisites, and point every challenge's connection info
-at this app's public host. The flag for each challenge is whatever you set in `_secrets.py`.
+Create the categories (JS / Web-LHF / XSS / Extra), add the 14 challenges with their
+point values, hints, attachments, and prerequisites (the Extra unlocks after all 13 others), and
+point every challenge's connection info at this app's public host. The flag for each challenge is
+whatever you set in `_secrets.py`.
 
 ## Notes
 - `tools/gen_crypto.py` is the single source of truth for the encoded assets — re-run it whenever
