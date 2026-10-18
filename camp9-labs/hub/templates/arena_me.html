@@ -6,14 +6,11 @@
   {% if planted %}<p style="color:#6cc349;font-weight:bold">✅ ใส่ payload ให้ {{ planted }} แล้ว — รอให้ {{ planted }} เปิดโปรไฟล์ตัวเอง cookie จะวิ่งมาที่คุณ</p>{% endif %}
 
   <p>🔒 <b>flag ลับของคุณ:</b> <code>{{ flag }}</code></p>
-  <p class="waf">ถ้าเพื่อนขโมย cookie (<code>arena_session</code>) ของคุณไปได้ เขาจะเปิดหน้านี้เป็นคุณและเห็น flag นี้
-     — cookie นี้ตั้งใจทำให้ JavaScript อ่านได้ (ไม่ได้ตั้ง HttpOnly) เพื่อการเรียนรู้</p>
 
-  <p>🔔 โปรไฟล์ของคุณมี <b>{{ sig_count }}</b> ข้อความ —
-     <a href="/arena/u/{{ me }}"><b>เปิดดูโปรไฟล์ของฉัน →</b></a>
-     <span class="waf">(ถ้ามีเพื่อนแอบใส่ payload ไว้ เปิดปุ๊บ cookie หลุดปั๊บ!)</span></p>
-
-  <p>🍪 คุณเก็บ cookie เพื่อนมาได้ <b>{{ loot_count }}</b> อัน — <a href="/arena/loot"><b>เปิดดู cookie ที่ได้มา →</b></a></p>
+  <p style="margin:16px 0">
+    <a class="btn-primary" href="/arena/u/{{ me }}">📩 เปิดอ่านข้อความ</a>
+    <a class="btn-ghost" href="/arena/loot" style="margin-left:10px">🍪 กล่อง cookie</a>
+  </p>
 
   <h3>✍️ ไปใส่ payload ให้เพื่อน</h3>
   {% if users|length > 1 %}

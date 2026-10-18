@@ -574,4 +574,6 @@ def arena_reset():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), debug=False)
+    # threaded=True so a classroom of students can hit the app at once instead
+    # of being served one request at a time.
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), debug=False, threaded=True)

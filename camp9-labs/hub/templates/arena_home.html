@@ -8,8 +8,6 @@
   .steps{background:var(--panel-2);border:3px solid #0c0c0d;padding:12px 14px 12px 34px;margin:12px 0;
     box-shadow:inset 2px 2px 0 var(--lt),inset -2px -2px 0 var(--dk)}
   .steps li{margin:6px 0;color:var(--text)}
-  .arena-note{border-left:6px solid var(--orange);background:rgba(243,162,26,.12);
-    padding:10px 14px;margin:12px 0;color:var(--orange-2);text-shadow:1px 1px 0 var(--shadow)}
   .goal{border-left:6px solid var(--green-2);background:rgba(76,159,56,.12);
     padding:10px 14px;margin:12px 0;color:var(--text)}
 </style>{% endblock %}
@@ -27,14 +25,12 @@
   <ol class="steps">
     <li>สมัครด้วยชื่อเล่นและใส่รหัสผ่าน</li>
     <li>ดูเพื่อนในห้อง แล้วไปใส่ <b>payload</b> (โค้ดสำเร็จรูป) ให้ได้มากที่สุด</li>
-    <li>ให้เพื่อนคนนั้นเปิดดูโปรไฟล์ของตัวเอง payload จะทำงานทันทีที่เปิด</li>
+    <li>ให้เพื่อนคนนั้นเปิดโปรไฟล์ตัวเอง แล้วกดปุ่ม <b>เปิดอ่านข้อความ</b> — payload จะทำงาน</li>
     <li>ดู cookie ที่ได้มา แล้วกดใช้ จากนั้นจะได้ flag</li>
   </ol>
 
   <p>payload จะเด้งข้อความ (<code>alert</code>) อธิบายให้เห็นทีละขั้นว่ามันทำอะไรกับเครื่องเพื่อน
      — <b>มาดูกันว่าใครจะเป็นคนที่ชอบ cookie มากที่สุด 🍪</b></p>
-
-  <p class="arena-note">⚠️ เล่นในห้องเรียน/เน็ตปิดเท่านั้น · ใช้ชื่อเล่นและรหัสผ่านแบบเล่น ๆ (อย่าใช้รหัสผ่านจริง) · ทุกคนยินยอมเล่นด้วยกัน</p>
 
   {% if error %}<p class="waf">✗ {{ error }}</p>{% endif %}
   {% if me %}

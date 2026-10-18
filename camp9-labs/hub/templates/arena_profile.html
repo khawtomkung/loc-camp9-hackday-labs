@@ -13,34 +13,51 @@
   <img class="page-icon" src="/assets/img/NPC.webp" alt="">
   <h2>📓 โปรไฟล์ของ {{ name }}</h2>
 
-  {% if me and me == name %}
-    <p class="waf">⚠️ นี่คือโปรไฟล์ของคุณเอง — ถ้ามีเพื่อนแอบใส่ payload ไว้ข้างล่าง พอเปิดหน้านี้ cookie ของคุณจะหลุดทันที 😅</p>
-  {% endif %}
-
-  {# messages first = you see them (and the planted payload fires) the moment the profile opens #}
   <h3>ข้อความในโปรไฟล์นี้</h3>
-  {% for e in entries %}
-    <div class="review">
-      <img class="review-av" src="/assets/img/NPC.webp" alt="">
-      <div><b>{{ e.author }}</b>: {{ e.body | safe }}</div>
-    </div>
+  {% if entries %}
+    {# The raw messages (incl. any planted payload) live inside an inert <template>, so nothing
+       loads or fires until the reader clicks "เปิดอ่านข้อความ". Copying the template HTML into a
+       live node re-parses it -> the <img onerror> payload runs ON CLICK, not on page load. #}
+    <p id="arena-open-wrap">
+      <button id="arena-open" type="button" class="btn-primary">📩 เปิดอ่านข้อความ ({{ entries|length }})</button>
+    </p>
+    <div id="arena-msgbox"></div>
+    <template id="arena-msgs">
+      {% for e in entries %}
+        <div class="review">
+          <img class="review-av" src="/assets/img/NPC.webp" alt="">
+          <div><b>{{ e.author }}</b>: {{ e.body | safe }}</div>
+        </div>
+      {% endfor %}
+    </template>
+    <script>
+      (function () {
+        var btn = document.getElementById("arena-open");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          document.getElementById("arena-msgbox").innerHTML =
+            document.getElementById("arena-msgs").innerHTML;
+          document.getElementById("arena-open-wrap").style.display = "none";
+        });
+      })();
+    </script>
   {% else %}
     <p>ยังไม่มีใครเขียน — ไปเป็นคนแรกสิ</p>
-  {% endfor %}
+  {% endif %}
 
   {% if me %}
     {% if me != name %}
     <div class="trap-box">
       <b>💉 ใส่ payload เพื่อขโมย cookie ของ {{ name }}</b>
       <p style="margin:4px 0">payload สำเร็จรูป (ใส่ชื่อคุณให้เรียบร้อยแล้ว) — กดปุ่มเพื่อฝากไว้ในโปรไฟล์ของ {{ name }}
-         พอ {{ name }} เปิดโปรไฟล์ตัวเอง payload จะทำงานทันทีและส่ง cookie ของเขามาให้คุณ:</p>
+         พอ {{ name }} เปิดโปรไฟล์แล้วกด "เปิดอ่านข้อความ" payload จะทำงานและส่ง cookie ของเขามาให้คุณ:</p>
       <form method="post">
         <input type="hidden" name="kind" value="payload">
         <textarea name="body">{{ trap }}</textarea>
         <button class="btn-primary">💉 ใส่ payload</button>
       </form>
       <p style="margin:4px 0;font-size:12px">💡 payload นี้คือรูป <code>&lt;img&gt;</code> ปลอม พอโหลดไม่ขึ้น (<code>onerror</code>)
-         มันจะรันโค้ด JavaScript ทันทีที่เปิดหน้า: เด้ง <code>alert</code> อธิบายทีละขั้น แล้วแอบส่ง cookie ของเพื่อนมาให้เรา</p>
+         มันจะรันโค้ด JavaScript ทันทีที่เพื่อนกด "เปิดอ่านข้อความ": เด้ง <code>alert</code> อธิบายทีละขั้น แล้วแอบส่ง cookie ของเพื่อนมาให้เรา</p>
     </div>
     {% endif %}
 
