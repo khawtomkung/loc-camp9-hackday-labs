@@ -56,7 +56,9 @@ whatever you set in `_secrets.py`.
 
 ## Arena — classroom PvP "cookie heist" (separate activity, beginner-friendly)
 A self-contained stored-XSS game at **`/arena`** — NOT one of the 14 challenges and not in CTFd; meant
-for a live class that hasn't learned XSS yet. Students self-register a throwaway name+PIN → get a
+for a live class that hasn't learned XSS yet. It has its **own menu and landing page** (the
+14-challenge hub nav no longer links to it), so it reads as a separate mini-site while sharing this
+app's process, port, and theme. Students self-register a throwaway name+PIN → get a
 non-HttpOnly `arena_session` cookie + a private flag at `/arena/me`, then steal each other's cookies by
 planting a **ready-made guestbook payload** (pre-filled on each classmate's `/arena/u/<name>` board — one
 click). A built-in catcher (`/arena/steal`) collects stolen cookies on the attacker's **`/arena/loot`**

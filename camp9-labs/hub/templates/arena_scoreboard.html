@@ -1,15 +1,16 @@
-{% extends "base.html" %}
-{% block title %}Arena — กระดานคะแนน{% endblock %}
+{% extends "arena_base.html" %}
+{% block title %}กระดานคะแนน — Cookie Stealing{% endblock %}
 {% block content %}
-  <h2>🏆 กระดานคะแนน — เกมขโมยตั๋ว</h2>
-  {% if msg %}<p style="color:{{ '#2e7d32' if msg[0]=='ok' else '#b23b3b' }};font-weight:bold">{{ msg[1] }}</p>{% endif %}
+  <h2>🏆 กระดานคะแนน — Cookie Stealing</h2>
+  <p>ใครเก็บ cookie ของเพื่อนได้มากที่สุด = ชอบ cookie ที่สุด ชนะ! 🍪</p>
+  {% if msg %}<p style="color:{{ '#6cc349' if msg[0]=='ok' else '#ff5555' }};font-weight:bold">{{ msg[1] }}</p>{% endif %}
   {% if board %}
-  <table style="border-collapse:collapse" border="1" cellpadding="6">
-    <tr><th>อันดับ</th><th>ผู้เล่น</th><th>แฮ็กได้</th><th>เหยื่อ</th></tr>
+  <table style="border-collapse:collapse;color:var(--text)" border="1" cellpadding="6">
+    <tr><th>อันดับ</th><th>ผู้เล่น</th><th>เก็บ cookie ได้ (อัน)</th><th>เจ้าของ cookie ที่ได้มา</th></tr>
     {% for a, n in board %}
       <tr><td>{{ loop.index }}</td><td>{{ a }}</td><td>{{ n }}</td><td>{{ detail[a] | join(', ') }}</td></tr>
     {% endfor %}
   </table>
-  {% else %}<p>ยังไม่มีใครแฮ็กสำเร็จ — ลงมือเลย!</p>{% endif %}
-  <p>{% if me %}<a href="/arena/me">← หน้าของฉัน</a> · <a href="/arena/loot">🎒 Loot</a>{% else %}<a href="/arena">← Arena</a>{% endif %}</p>
+  {% else %}<p>ยังไม่มีใครเก็บ cookie ได้ — ลงมือเลย!</p>{% endif %}
+  <p>{% if me %}<a href="/arena/me">← หน้าของฉัน</a> · <a href="/arena/loot">🍪 cookie ที่ได้มา</a>{% else %}<a href="/arena">← หน้าแรก</a>{% endif %}</p>
 {% endblock %}

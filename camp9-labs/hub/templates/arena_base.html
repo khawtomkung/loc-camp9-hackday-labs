@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cookie Stealing{% endblock %}</title>
+  <link rel="stylesheet" href="/assets/css/minecraft.css">
+  {# Arena has its OWN nav (no 14-challenge links) so it reads as a separate site,
+     while sharing the hub process + theme. Uses `me` = the logged-in player. #}
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <a href="/arena" class="nav-brand" style="color:var(--gold);font-weight:900;letter-spacing:1px;text-decoration:none">🍪 Cookie Stealing</a>
+    {% if me %}
+      <a href="/arena/me">🙋 หน้าหลัก</a>
+      <a href="/arena/loot">🍪 cookie ที่ได้มา</a>
+    {% endif %}
+    <a href="/arena/scoreboard">🏆 กระดานคะแนน</a>
+    <span class="nav-spacer"></span>
+    {% if me %}<span class="nav-user">{{ me }}</span> <a href="/arena/logout" class="btn-ghost">ออกจากระบบ</a>{% else %}<a href="/arena" class="btn-ghost">เข้าเล่น</a>{% endif %}
+  </nav>
+  <hr>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

@@ -1,19 +1,21 @@
-{% extends "base.html" %}
-{% block title %}Arena — {{ me }}{% endblock %}
+{% extends "arena_base.html" %}
+{% block title %}หน้าหลักของฉัน{% endblock %}
 {% block content %}
   <h2>🙋 สวัสดี {{ me }}</h2>
 
+  {% if planted %}<p style="color:#6cc349;font-weight:bold">✅ ใส่ payload ให้ {{ planted }} แล้ว — รอให้ {{ planted }} เปิดโปรไฟล์ตัวเอง cookie จะวิ่งมาที่คุณ</p>{% endif %}
+
   <p>🔒 <b>flag ลับของคุณ:</b> <code>{{ flag }}</code></p>
-  <p class="waf">ถ้าเพื่อนขโมย "ตั๋ว" (cookie <code>arena_session</code>) ของคุณไปได้ เขาจะเปิดหน้านี้เป็นคุณแล้วเห็น flag นี้
-     — ตั๋วนี้ตั้งใจทำให้ JavaScript อ่านได้ (ไม่ HttpOnly) เพื่อการเรียนรู้</p>
+  <p class="waf">ถ้าเพื่อนขโมย cookie (<code>arena_session</code>) ของคุณไปได้ เขาจะเปิดหน้านี้เป็นคุณและเห็น flag นี้
+     — cookie นี้ตั้งใจทำให้ JavaScript อ่านได้ (ไม่ได้ตั้ง HttpOnly) เพื่อการเรียนรู้</p>
 
-  <p>🔔 สมุดเยี่ยมของคุณมี <b>{{ sig_count }}</b> ข้อความ —
-     <a href="/arena/u/{{ me }}"><b>เปิดดูว่าใครมาเซ็น →</b></a>
-     <span class="waf">(ถ้ามีใครแอบวางกับดักไว้ เปิดปุ๊บตั๋วหลุดปั๊บ!)</span></p>
+  <p>🔔 โปรไฟล์ของคุณมี <b>{{ sig_count }}</b> ข้อความ —
+     <a href="/arena/u/{{ me }}"><b>เปิดดูโปรไฟล์ของฉัน →</b></a>
+     <span class="waf">(ถ้ามีเพื่อนแอบใส่ payload ไว้ เปิดปุ๊บ cookie หลุดปั๊บ!)</span></p>
 
-  <p>🎒 คุณขโมยตั๋วมาได้ <b>{{ loot_count }}</b> ใบ — <a href="/arena/loot"><b>เปิดกระเป๋า Loot →</b></a></p>
+  <p>🍪 คุณเก็บ cookie เพื่อนมาได้ <b>{{ loot_count }}</b> อัน — <a href="/arena/loot"><b>เปิดดู cookie ที่ได้มา →</b></a></p>
 
-  <h3>✍️ ไปวางกับดักบนสมุดเพื่อน</h3>
+  <h3>✍️ ไปใส่ payload ให้เพื่อน</h3>
   {% if users|length > 1 %}
   <div class="ware-grid">
     {% for u in users %}{% if u != me %}<a class="ware" href="/arena/u/{{ u | urlencode }}"><span>{{ u }}</span></a>{% endif %}{% endfor %}

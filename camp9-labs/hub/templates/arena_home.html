@@ -1,44 +1,57 @@
-{% extends "base.html" %}
-{% block title %}Arena — เกมขโมยตั๋ว{% endblock %}
+{% extends "arena_base.html" %}
+{% block title %}Cookie Stealing{% endblock %}
 {% block head %}<style>
   .arena-forms{display:flex;gap:24px;flex-wrap:wrap;margin:12px 0}
-  .arena-forms form{background:#c6c6c6;border:3px solid #373737;padding:12px}
+  .arena-forms form{background:var(--panel-2);border:3px solid #0c0c0d;padding:14px;
+    box-shadow:inset 2px 2px 0 var(--lt),inset -2px -2px 0 var(--dk)}
   .arena-forms input{display:block;margin:6px 0;width:200px}
-  .steps{background:#dfe7b0;border:3px solid #373737;padding:10px 10px 10px 28px;margin:12px 0}
-  .steps li{margin:4px 0}
+  .steps{background:var(--panel-2);border:3px solid #0c0c0d;padding:12px 14px 12px 34px;margin:12px 0;
+    box-shadow:inset 2px 2px 0 var(--lt),inset -2px -2px 0 var(--dk)}
+  .steps li{margin:6px 0;color:var(--text)}
+  .arena-note{border-left:6px solid var(--orange);background:rgba(243,162,26,.12);
+    padding:10px 14px;margin:12px 0;color:var(--orange-2);text-shadow:1px 1px 0 var(--shadow)}
+  .goal{border-left:6px solid var(--green-2);background:rgba(76,159,56,.12);
+    padding:10px 14px;margin:12px 0;color:var(--text)}
 </style>{% endblock %}
 {% block content %}
   <img class="page-icon" src="/assets/img/Ender_Pearl.png" alt="">
-  <h2>🎟️ เกมขโมยตั๋ว (Cookie) เพื่อน</h2>
-  <p><b>ไอเดีย:</b> เวลาเราล็อกอินเว็บ เว็บจะแจก "ตั๋ว" (cookie) ให้ ใครถือตั๋วเราไป = ปลอมเป็นเราได้
-     เกมนี้ให้เราแอบวาง "กับดัก" ไว้บนสมุดเยี่ยมของเพื่อน พอเพื่อนเปิดดู ตั๋วของเพื่อนจะวิ่งมาหาเรา
-     แล้วเราเอาตั๋วนั้นไปเปิดดู <b>flag ลับของเพื่อน</b> ได้</p>
-  <p class="waf">⚠️ เล่นในห้อง/เน็ตปิดเท่านั้น · ใช้บัญชีเล่น ๆ (อย่าใช้รหัสจริง) · ทุกคนยินยอมเล่นด้วยกัน</p>
+  <h2>🍪 Cookie Stealing</h2>
 
+  <div class="goal">
+    <b>เป้าหมาย</b><br>
+    เวลาเราล็อกอินเว็บ เว็บจะให้ <b>cookie</b> เรามาเก็บไว้ (เอาไว้บอกว่า "นี่คือเรา")
+    ในเกมนี้เราต้องหา cookie ของเพื่อนให้ได้ แล้วเอามาใช้เปิดดู <b>flag ลับของเพื่อน</b> ถึงจะได้คะแนน
+  </div>
+
+  <h3>วิธีเล่น</h3>
   <ol class="steps">
-    <li>สมัครชื่อเล่น + PIN (ด้านล่าง)</li>
-    <li>เข้าหน้าเพื่อนที่ <code>/arena/u/ชื่อเพื่อน</code> → กดปุ่ม <b>"วางกับดัก"</b> (payload เติมให้แล้ว)</li>
-    <li>ตะโกนชวนเพื่อน ๆ ให้ไป "เปิดดูสมุดเยี่ยมตัวเอง" (กับดักจะทำงานตอนเขาเปิด)</li>
-    <li>เปิดหน้า <b>🎒 Loot</b> ของเรา → จะเห็นตั๋ว (cookie) ของเพื่อนที่ติดกับดัก</li>
-    <li>กด <b>"ใช้ตั๋วนี้"</b> → เห็น flag ลับของเพื่อน → กด <b>Claim</b> ขึ้นกระดานคะแนน 🏆</li>
+    <li>สมัครด้วยชื่อเล่นและใส่รหัสผ่าน</li>
+    <li>ดูเพื่อนในห้อง แล้วไปใส่ <b>payload</b> (โค้ดสำเร็จรูป) ให้ได้มากที่สุด</li>
+    <li>ให้เพื่อนคนนั้นเปิดดูโปรไฟล์ของตัวเอง payload จะทำงานทันทีที่เปิด</li>
+    <li>ดู cookie ที่ได้มา แล้วกดใช้ จากนั้นจะได้ flag</li>
   </ol>
+
+  <p>payload จะเด้งข้อความ (<code>alert</code>) อธิบายให้เห็นทีละขั้นว่ามันทำอะไรกับเครื่องเพื่อน
+     — <b>มาดูกันว่าใครจะเป็นคนที่ชอบ cookie มากที่สุด 🍪</b></p>
+
+  <p class="arena-note">⚠️ เล่นในห้องเรียน/เน็ตปิดเท่านั้น · ใช้ชื่อเล่นและรหัสผ่านแบบเล่น ๆ (อย่าใช้รหัสผ่านจริง) · ทุกคนยินยอมเล่นด้วยกัน</p>
 
   {% if error %}<p class="waf">✗ {{ error }}</p>{% endif %}
   {% if me %}
-    <p>ล็อกอินเป็น <b>{{ me }}</b> แล้ว — ไป <a href="/arena/me">หน้าของฉัน →</a></p>
+    <p>เข้าเล่นเป็น <b>{{ me }}</b> แล้ว — ไป <a href="/arena/me">หน้าของฉัน →</a></p>
   {% else %}
   <div class="arena-forms">
     <form method="post" action="/arena/register">
-      <h3>① สมัครเล่น (ครั้งแรก)</h3>
+      <h3>สมัครเล่น (ครั้งแรก)</h3>
       <input name="name" placeholder="ชื่อเล่น (a-z 0-9 _)" autocomplete="off">
-      <input name="pin" type="text" placeholder="PIN เล่น ๆ" autocomplete="off">
+      <input name="pin" type="text" placeholder="รหัสผ่าน (เล่น ๆ)" autocomplete="off">
       <button class="btn-primary">เริ่มเล่น</button>
     </form>
     <form method="post" action="/arena/login">
       <h3>เข้าเล่นต่อ</h3>
       <input name="name" placeholder="ชื่อเล่น" autocomplete="off">
-      <input name="pin" type="text" placeholder="PIN" autocomplete="off">
-      <button class="btn-ghost">Login</button>
+      <input name="pin" type="text" placeholder="รหัสผ่าน" autocomplete="off">
+      <button class="btn-ghost">เข้าสู่ระบบ</button>
     </form>
   </div>
   {% endif %}

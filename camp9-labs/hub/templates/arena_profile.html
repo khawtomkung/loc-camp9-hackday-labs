@@ -1,52 +1,57 @@
-{% extends "base.html" %}
-{% block title %}สมุดเยี่ยมของ {{ name }}{% endblock %}
+{% extends "arena_base.html" %}
+{% block title %}โปรไฟล์ของ {{ name }}{% endblock %}
 {% block head %}<style>
-  .trap-box{background:#ffe9a8;border:3px solid #a6761d;padding:12px;margin:14px 0}
-  .trap-box textarea{width:100%;height:60px;font-family:monospace;font-size:12px}
+  .trap-box{background:rgba(243,162,26,.12);border:3px solid #7a4e06;padding:12px;margin:14px 0;
+    box-shadow:inset 2px 2px 0 var(--lt),inset -2px -2px 0 var(--dk)}
+  .trap-box textarea{width:100%;height:64px;font-family:monospace;font-size:12px}
 </style>{% endblock %}
 {% block content %}
   {% if not exists %}
     <h2>ไม่พบผู้เล่น "{{ name }}"</h2>
-    <p><a href="/arena">← กลับ Arena</a></p>
+    <p><a href="/arena">← กลับหน้าแรก</a></p>
   {% else %}
   <img class="page-icon" src="/assets/img/NPC.webp" alt="">
-  <h2>📓 สมุดเยี่ยมของ {{ name }}</h2>
+  <h2>📓 โปรไฟล์ของ {{ name }}</h2>
 
-  {% if me %}
-    {% if me != name %}
-    <div class="trap-box">
-      <b>🪤 วางกับดักขโมยตั๋วของ {{ name }}</b>
-      <p style="margin:4px 0">นี่คือ "กับดัก" สำเร็จรูป (ใส่ชื่อคุณให้แล้ว) — กดปุ่มเพื่อแอบวางบนสมุดของ {{ name }}
-         พอ {{ name }} เปิดดูสมุดตัวเอง ตั๋วของเขาจะวิ่งเข้ากระเป๋า Loot ของคุณ:</p>
-      <form method="post">
-        <textarea name="body">{{ trap }}</textarea>
-        <button class="btn-primary">🪤 วางกับดัก</button>
-      </form>
-      <p style="margin:4px 0;font-size:12px">💡 มันคือรูปภาพปลอม <code>&lt;img&gt;</code> ที่พอโหลดไม่ได้ (<code>onerror</code>)
-         จะสั่งให้เบราว์เซอร์ของเหยื่อส่ง <code>document.cookie</code> มาหาเรา — นี่แหละ "เขี้ยวเล็บของ XSS"</p>
-    </div>
-    {% else %}
-    <p class="waf">นี่คือสมุดของคุณเอง — ระวัง! ถ้ามีกับดักอยู่ข้างล่าง เปิดหน้านี้ตั๋วคุณก็หลุดแล้ว 😅</p>
-    {% endif %}
-
-    <form method="post">
-      <input name="body" placeholder="เขียนข้อความปกติถึง {{ name }}..." size="48">
-      <button class="btn-ghost">เซ็นปกติ</button>
-    </form>
-  {% else %}
-    <p><a href="/arena">ล็อกอิน</a> ก่อนถึงจะเซ็น/วางกับดักได้</p>
+  {% if me and me == name %}
+    <p class="waf">⚠️ นี่คือโปรไฟล์ของคุณเอง — ถ้ามีเพื่อนแอบใส่ payload ไว้ข้างล่าง พอเปิดหน้านี้ cookie ของคุณจะหลุดทันที 😅</p>
   {% endif %}
 
-  <h3>ข้อความในสมุด</h3>
+  {# messages first = you see them (and the planted payload fires) the moment the profile opens #}
+  <h3>ข้อความในโปรไฟล์นี้</h3>
   {% for e in entries %}
     <div class="review">
       <img class="review-av" src="/assets/img/NPC.webp" alt="">
       <div><b>{{ e.author }}</b>: {{ e.body | safe }}</div>
     </div>
   {% else %}
-    <p>ยังไม่มีใครเซ็น — ไปเป็นคนแรกสิ</p>
+    <p>ยังไม่มีใครเขียน — ไปเป็นคนแรกสิ</p>
   {% endfor %}
 
-  <p><a href="/arena">← Arena</a> · <a href="/arena/me">หน้าของฉัน</a></p>
+  {% if me %}
+    {% if me != name %}
+    <div class="trap-box">
+      <b>💉 ใส่ payload เพื่อขโมย cookie ของ {{ name }}</b>
+      <p style="margin:4px 0">payload สำเร็จรูป (ใส่ชื่อคุณให้เรียบร้อยแล้ว) — กดปุ่มเพื่อฝากไว้ในโปรไฟล์ของ {{ name }}
+         พอ {{ name }} เปิดโปรไฟล์ตัวเอง payload จะทำงานทันทีและส่ง cookie ของเขามาให้คุณ:</p>
+      <form method="post">
+        <input type="hidden" name="kind" value="payload">
+        <textarea name="body">{{ trap }}</textarea>
+        <button class="btn-primary">💉 ใส่ payload</button>
+      </form>
+      <p style="margin:4px 0;font-size:12px">💡 payload นี้คือรูป <code>&lt;img&gt;</code> ปลอม พอโหลดไม่ขึ้น (<code>onerror</code>)
+         มันจะรันโค้ด JavaScript ทันทีที่เปิดหน้า: เด้ง <code>alert</code> อธิบายทีละขั้น แล้วแอบส่ง cookie ของเพื่อนมาให้เรา</p>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      <input name="body" placeholder="เขียนข้อความปกติถึง {{ name }}..." size="48">
+      <button class="btn-ghost">เขียนข้อความ</button>
+    </form>
+  {% else %}
+    <p><a href="/arena">เข้าเล่น</a> ก่อน ถึงจะใส่ payload หรือเขียนข้อความได้</p>
+  {% endif %}
+
+  <p><a href="/arena">← หน้าแรก</a> · <a href="/arena/me">หน้าหลักของฉัน</a></p>
   {% endif %}
 {% endblock %}
