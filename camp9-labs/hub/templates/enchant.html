@@ -3,7 +3,9 @@
 {# lab.txt §4.2 — flag assigned BEFORE the injectable line. NO CSP header on this route. #}
 {% block head %}
   <script>
-    window.enchantFlag = atob("{{ enchant_b64 }}");  {# base64 computed server-side; not plaintext in source/repo #}
+    {# Defined ONLY when the server confirms q breaks out of the JS string. No valid payload
+       -> enchantFlag never exists, so view-source / atob() in the Console reveals nothing. #}
+    {% if enchant_ok %}window.enchantFlag = atob("{{ enchant_b64 }}");{% endif %}
     function renderItem(x){ try { document.getElementById('item').textContent = 'Enchanting: ' + x; } catch (e) {} }
   </script>
 {% endblock %}

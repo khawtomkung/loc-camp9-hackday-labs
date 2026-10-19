@@ -166,26 +166,59 @@ def admin():
 # XSS — Reflected  (XSS-1, XSS-2, XSS-4 on /search ; XSS-3 on /enchant)
 # Spec: lab.txt §4.1 / §4.2.  Rule: window.*Flag defined in <head> BEFORE the reflection.
 # ---------------------------------------------------------------------------
-WAF = re.compile(r"script|onerror", re.IGNORECASE)  # XSS-4 blocklist: blocks script/onerror, allows svg/onload
+# XSS-4 blocklist (hardened): also blocks onload/svg/iframe so the classic <svg onload>
+# no longer works — forces a non-onload auto-firing vector (e.g. <details open ontoggle=…>).
+WAF = re.compile(r"script|onerror|onload|svg|iframe", re.IGNORECASE)
+
+# --- Reflected-XSS gating (force the intended method; close source/atob shortcuts) ---
+# The flag's base64 is emitted into the page ONLY when `q` is the REAL exploit for that
+# challenge: it must (1) break out of the exact context, (2) contain a construct that
+# actually runs JS, and (3) reference the challenge's flag variable by name (the hinted
+# window.*Flag). So a bare tag like <a>, or a trivial <script>1</script>, no longer
+# passes — and with no valid payload NOTHING (no var, no base64) is in the source, so
+# reading Elements/Sources or typing atob(...) in the Console reveals nothing.
+_EXEC = re.compile(r"<\s*script\b|<[^>]+\son\w+\s*=|javascript:", re.I)   # a construct that runs JS
+
+def _xss1_ok(q):   # HTML-body context: inject an executing tag that reads signFlag
+    return bool(_EXEC.search(q)) and "signflag" in q.lower()
+
+def _xss2_ok(q):   # attribute context: close value="..." with `">` first, then inject + read secretFlag
+    return bool(re.search(r'"\s*>', q)) and bool(_EXEC.search(q)) and "secretflag" in q.lower()
+
+def _xss3_ok(q):   # JS single-quoted string: break out of '...' with code that reads enchantFlag
+    return ("'" in q) and bool(re.search(r"(;|//|\})", q)) and "enchantflag" in q.lower()
+
+def _xss4_ok(q):   # WAF variant: an executing vector that bypasses the hardened WAF and reads golemFlag
+    return bool(_EXEC.search(q)) and not WAF.search(q) and "golemflag" in q.lower()
 
 
 @app.route("/search")
 def search():
     q = request.args.get("q", "")
     guard = request.args.get("guard") == "on"   # "Iron Golem's Shield" WAF variant (XSS-4)
+    # Gate on the ORIGINAL q (before the WAF scrubs it).
+    sign_ok   = _xss1_ok(q)
+    secret_ok = _xss2_ok(q)
+    golem_ok  = guard and _xss4_ok(q)
     blocked = False
     if guard and WAF.search(q):
         q, blocked = "", True                    # WAF scrubs the reflection
     # search.html reflects q UNESCAPED in BOTH body and attribute. NO CSP on this route (intentional).
     return render_template("search.html", q=q, guard=guard, blocked=blocked, user=current_user(),
-                           sign_b64=_b64(XSS1_FLAG), secret_b64=_b64(XSS2_FLAG), golem_b64=_b64(XSS4_FLAG))
+                           sign_ok=sign_ok, secret_ok=secret_ok, golem_ok=golem_ok,
+                           sign_b64=_b64(XSS1_FLAG) if sign_ok else "",
+                           secret_b64=_b64(XSS2_FLAG) if secret_ok else "",
+                           golem_b64=_b64(XSS4_FLAG) if golem_ok else "")
 
 
 @app.route("/enchant")
 def enchant():
     q = request.args.get("q", "")
+    enchant_ok = _xss3_ok(q)
     # enchant.html reflects q inside a single-quoted JS string (XSS-3). NO CSP on this route.
-    return render_template("enchant.html", q=q, user=current_user(), enchant_b64=_b64(XSS3_FLAG))
+    return render_template("enchant.html", q=q, user=current_user(),
+                           enchant_ok=enchant_ok,
+                           enchant_b64=_b64(XSS3_FLAG) if enchant_ok else "")
 
 
 # ---------------------------------------------------------------------------

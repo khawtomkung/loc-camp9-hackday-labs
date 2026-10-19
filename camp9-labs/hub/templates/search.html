@@ -3,11 +3,11 @@
 {# lab.txt §4.1 — the `| safe` filters ARE the bug. NO CSP header on this route. #}
 {% block head %}
   <script>
-    {# flags are base64 (computed server-side from secrets) so `LOC9{` is NOT plaintext in view-source
-       and NOT in this repo — you must run JS (Console or injected) to read them #}
-    window.signFlag   = atob("{{ sign_b64 }}");    {# XSS-1 #}
-    window.secretFlag = atob("{{ secret_b64 }}");  {# XSS-2 #}
-    {% if guard %}window.golemFlag = atob("{{ golem_b64 }}");{% endif %}  {# XSS-4 #}
+    {# The flag is defined ONLY when the server confirms q is a correct breakout for this
+       context. No valid payload -> nothing here, so view-source / atob() reveals nothing. #}
+    {% if sign_ok %}window.signFlag   = atob("{{ sign_b64 }}");{% endif %}   {# XSS-1 #}
+    {% if secret_ok %}window.secretFlag = atob("{{ secret_b64 }}");{% endif %} {# XSS-2 #}
+    {% if golem_ok %}window.golemFlag  = atob("{{ golem_b64 }}");{% endif %}  {# XSS-4 #}
   </script>
 {% endblock %}
 {% block content %}
