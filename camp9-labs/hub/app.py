@@ -2,9 +2,9 @@
 # =============================================================
 # BUILD STATUS (order: XSS-reflected -> JS -> web_lhf -> XSS-stored)
 #   [DONE] Foundation: app, non-HttpOnly mayor cookie, login/logout, home, admin stub
-#   [DONE] XSS-1 /search (HTML body), XSS-2 /search (attribute), XSS-4 /search?guard=on (WAF)
-#   [DONE] XSS-3 /enchant (JS-string context)
-#   [TODO] JS-1..4, WEB-1..5, XSS-5/6  -> implemented next (stubs below, each cites lab.txt section)
+#   [DONE] XSS-1..4 all on /search via ?lvl= (escalating <script> filter; flag via window.__s + sign.js)
+#          L4 boss = decoy flags on-page + token-gated backup relay /search/_bak (double-encoded)
+#   [DONE] XSS-5 "The Attacker" chained drill on /xss/attacker (cookie decoy -> keylogger real flag)
 # Spec: ../lab.txt (Part 1 = infra, Part 2 = per-challenge). Run: see README.md
 import os
 import re
@@ -77,20 +77,21 @@ WEB5_FLAG = _sec("WEB5_FLAG", "LOC9{REDACTED_set_in__secrets}")
 # WEB-3/WEB-4 flags live inside files (base64 notes.txt / base64+XOR config.bak.enc) — see tools/gen_crypto.py
 DEV_BACKUP_DIR = os.path.join(app.root_path, "dev-backup")
 
-# --- XSS reflected flags (surfaced server-side as base64 into the page; never plaintext) ---
+# --- XSS reflected flags: returned by the server ONLY on a correct breakout; NEVER in static source ---
 XSS1_FLAG = _sec("XSS1_FLAG", "LOC9{REDACTED_set_in__secrets}")
 XSS2_FLAG = _sec("XSS2_FLAG", "LOC9{REDACTED_set_in__secrets}")
 XSS3_FLAG = _sec("XSS3_FLAG", "LOC9{REDACTED_set_in__secrets}")
 XSS4_FLAG = _sec("XSS4_FLAG", "LOC9{REDACTED_set_in__secrets}")
+XSS5_FLAG = _sec("XSS5_FLAG", "LOC9{REDACTED_set_in__secrets}")   # XSS-5 "Attacker" chained drill; real flag = keylogger step
 TRADE_ITEMS = [
     {"id": "bread",         "name": "Bread",                   "price": 2,  "mayor_only": False},
     {"id": "emerald_block", "name": "Emerald Block",           "price": 9,  "mayor_only": False},
     {"id": "diamond_sword", "name": "Enchanted Diamond Sword", "price": 64, "mayor_only": True},
 ]
-# NOTE: standalone Stored-XSS (XSS-5/6) and the SQLi "Village Market" were REMOVED as challenges.
-# The stored-XSS *mechanism* — non-HttpOnly mayor cookie, the /profile avatar sink, the Admin Bot,
-# and the mayor-only /admin page — is KEPT only because the EXTRA craft challenge reuses it to reveal
-# the Enchant Seal. There are no XSS5/XSS6/SQLi flags anymore.
+# NOTE: the old STORED-XSS challenges and the SQLi "Village Market" were REMOVED. The stored-XSS
+# *mechanism* — non-HttpOnly mayor cookie, /profile avatar sink, Admin Bot, mayor-only /admin — is
+# KEPT only because the EXTRA craft challenge reuses it to reveal the Enchant Seal. (XSS-5 below is a
+# NEW self-contained reflected "attacker" drill on /xss/attacker, unrelated to the old stored XSS.)
 
 # --- EXTRA (final boss): Crafting Table. Chains web_lhf + crypto + a stored-XSS session hijack:
 #     web_lhf  -> find the hidden recipe scroll  /forge-recipes/codex.recipe
@@ -163,62 +164,166 @@ def admin():
 
 
 # ---------------------------------------------------------------------------
-# XSS — Reflected  (XSS-1, XSS-2, XSS-4 on /search ; XSS-3 on /enchant)
-# Spec: lab.txt §4.1 / §4.2.  Rule: window.*Flag defined in <head> BEFORE the reflection.
+# XSS — Reflected  (XSS-1..4 all on /search via ?lvl= ; XSS-5 attacker below)
 # ---------------------------------------------------------------------------
-# XSS-4 blocklist (hardened): also blocks onload/svg/iframe so the classic <svg onload>
-# no longer works — forces a non-onload auto-firing vector (e.g. <details open ontoggle=…>).
-WAF = re.compile(r"script|onerror|onload|svg|iframe", re.IGNORECASE)
-
-# --- Reflected-XSS gating (force the intended method; close source/atob shortcuts) ---
-# The flag's base64 is emitted into the page ONLY when `q` is the REAL exploit for that
-# challenge: it must (1) break out of the exact context, (2) contain a construct that
-# actually runs JS, and (3) reference the challenge's flag variable by name (the hinted
-# window.*Flag). So a bare tag like <a>, or a trivial <script>1</script>, no longer
-# passes — and with no valid payload NOTHING (no var, no base64) is in the source, so
-# reading Elements/Sources or typing atob(...) in the Console reveals nothing.
+# All four levels BLOCK the <script> tag and reflect q into the <h3> body sink. The flag is NEVER
+# in the page/JS: on a working injection the server drops a base64 blob into window.__s, and the
+# student must decode it with reveal()/reveal2() from /assets/js/sign.js (found in Sources). No banner.
+#   L1  block lowercase <script> + any on*= handler + javascript:  -> only mixed-case <ScRiPt> survives
+#   L2  block <script> (any case)                                  -> an event handler (<img onerror>)
+#   L3  block <script> (any case) + <img + onerror                 -> other handlers (<svg>/<body>/<div>)
+#   L4  block <script> (any case); page is salted with FAKE flags  -> real one only via the backup relay
 _EXEC = re.compile(r"<\s*script\b|<[^>]+\son\w+\s*=|javascript:", re.I)   # a construct that runs JS
+_RE_SCRIPT_LOWER = re.compile(r"<\s*script")             # case-SENSITIVE: lowercase <script> only
+_RE_SCRIPT_ANY   = re.compile(r"<\s*script", re.I)
+_RE_HANDLER      = re.compile(r"\son\w+\s*=", re.I)
+_RE_OTHER_HANDLER= re.compile(r"\son(?!click\b)\w+\s*=", re.I)   # any handler EXCEPT onclick
+_RE_IMG          = re.compile(r"<\s*img|onerror", re.I)
+_RE_JSPROTO      = re.compile(r"javascript:", re.I)
 
-def _xss1_ok(q):   # HTML-body context: inject an executing tag that reads signFlag
-    return bool(_EXEC.search(q)) and "signflag" in q.lower()
+# XSS-4 "Iron Golem" boss: a token that gates the backup relay. NOT a flag. The L4 page carries ONE
+# breadcrumb — an HTML comment holding the base64 of the relay path (reveals the PATH, never the flag).
+XSS4_BAK_KEY = "g0lem_r3lay_2026"
+# Two halves the student must combine: the page comment gives the ENDPOINT `/search/_bak?k=` (base64),
+# and an onclick injection gives the TOKEN via window.__s (base64). Neither alone reaches the relay.
+XSS4_BAK_HINT_B64 = _b64("/search/_bak?k=")
 
-def _xss2_ok(q):   # attribute context: close value="..." with `">` first, then inject + read secretFlag
-    return bool(re.search(r'"\s*>', q)) and bool(_EXEC.search(q)) and "secretflag" in q.lower()
+def _lvl_blocks(q, lvl):   # True => this level's filter scrubs q (nothing reflects)
+    if lvl == 1:
+        return bool(_RE_SCRIPT_LOWER.search(q) or _RE_HANDLER.search(q) or _RE_JSPROTO.search(q))
+    if lvl == 3:
+        return bool(_RE_SCRIPT_ANY.search(q) or _RE_IMG.search(q))
+    if lvl == 4:
+        # ONLY an onclick handler survives: block <script> + every other on*= + javascript:
+        return bool(_RE_SCRIPT_ANY.search(q) or _RE_OTHER_HANDLER.search(q) or _RE_JSPROTO.search(q))
+    return bool(_RE_SCRIPT_ANY.search(q))   # L2
 
-def _xss3_ok(q):   # JS single-quoted string: break out of '...' with code that reads enchantFlag
-    return ("'" in q) and bool(re.search(r"(;|//|\})", q)) and "enchantflag" in q.lower()
-
-def _xss4_ok(q):   # WAF variant: an executing vector that bypasses the hardened WAF and reads golemFlag
-    return bool(_EXEC.search(q)) and not WAF.search(q) and "golemflag" in q.lower()
+# In-memory loot for the attacker drill (XSS-5); wiped on restart — fine for a classroom.
+CATCH = {}   # hunter_id -> [ strings the SIMULATED victim exfiltrated ]
+_XSS_GIF = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")  # 1x1 gif
 
 
 @app.route("/search")
 def search():
     q = request.args.get("q", "")
-    guard = request.args.get("guard") == "on"   # "Iron Golem's Shield" WAF variant (XSS-4)
-    # Gate on the ORIGINAL q (before the WAF scrubs it).
-    sign_ok   = _xss1_ok(q)
-    secret_ok = _xss2_ok(q)
-    golem_ok  = guard and _xss4_ok(q)
-    blocked = False
-    if guard and WAF.search(q):
-        q, blocked = "", True                    # WAF scrubs the reflection
-    # search.html reflects q UNESCAPED in BOTH body and attribute. NO CSP on this route (intentional).
-    return render_template("search.html", q=q, guard=guard, blocked=blocked, user=current_user(),
-                           sign_ok=sign_ok, secret_ok=secret_ok, golem_ok=golem_ok,
-                           sign_b64=_b64(XSS1_FLAG) if sign_ok else "",
-                           secret_b64=_b64(XSS2_FLAG) if secret_ok else "",
-                           golem_b64=_b64(XSS4_FLAG) if golem_ok else "")
+    try:
+        lvl = int(request.args.get("lvl", "1"))
+    except (TypeError, ValueError):
+        lvl = 1
+    if lvl not in (1, 2, 3, 4):
+        lvl = 1
+    blocked = False; sflag_b64 = None; drop_token = False
+    # No banner. L1-3: on a working injection window.__s is set INLINE (decodes to the flag). L4 (onclick
+    # only): the token is NOT written into the page at all — it's dropped in an out-of-band cookie that
+    # sign.js loads into window.__s at RUNTIME, so reading the HTML/JS never reveals it; you must inject
+    # the onclick and CLICK to alert it. The token is then appended to the endpoint from the page comment.
+    if _lvl_blocks(q, lvl):
+        q, blocked = "", True
+    elif _EXEC.search(q):
+        if lvl == 4:
+            drop_token = True
+        else:
+            sflag_b64 = _b64({1: XSS1_FLAG, 2: XSS2_FLAG, 3: XSS3_FLAG}[lvl])
+    resp = make_response(render_template("search.html", q=q, lvl=lvl, blocked=blocked,
+                         user=current_user(), sflag_b64=sflag_b64, bak_b64=XSS4_BAK_HINT_B64))
+    if drop_token:
+        resp.set_cookie("__t", _b64(XSS4_BAK_KEY), httponly=False, samesite="Lax", secure=False, path="/search")
+    return resp
 
 
-@app.route("/enchant")
-def enchant():
-    q = request.args.get("q", "")
-    enchant_ok = _xss3_ok(q)
-    # enchant.html reflects q inside a single-quoted JS string (XSS-3). NO CSP on this route.
-    return render_template("enchant.html", q=q, user=current_user(),
-                           enchant_ok=enchant_ok,
-                           enchant_b64=_b64(XSS3_FLAG) if enchant_ok else "")
+@app.route("/search/_bak")
+def search_bak():
+    # XSS-4 backup relay. Reachable only with the token that window.__s revealed (so you cannot skip
+    # the XSS). Returns the flag scrambled TWICE (base64 of XOR 0x2a); reveal2() in sign.js undoes it.
+    if request.args.get("k", "") != XSS4_BAK_KEY:
+        return make_response(("relay offline", 404))
+    return jsonify(data=_xor_b64(XSS4_FLAG, 0x2a))
+
+
+# --- XSS-5 "ShadowVillage" — a STANDALONE interactive hacker sim (own look, not the villager hub) -----
+# Story, delivered through a fake iPhone "Mail" app (phishing links) with an NPC click->explode animation:
+#   Step 1  phish a VILLAGER: mail them a cookie-stealer link -> they click -> you capture their cookie,
+#           which contains  session=<HACKER_SESSION>  + a note hinting the chief TYPES his master key.
+#   Step 2  SESSION-RIDE (Burp): set  session=<HACKER_SESSION>  on a request to /xss/attacker/inside to
+#           log in as the Hacker (the area is gated on that cookie, nothing else).
+#   Step 3  on the hacker desktop (many tools) EQUIP the Keylogger + TARGET the Chief,
+#   Step 4  mail the CHIEF a key-logging link -> he clicks -> capture his keystrokes = XSS5_FLAG.
+# Victims are SIMULATED server-side (pattern-check the pasted payload); NO payload hints on the pages.
+HACKER_SESSION = "v1ct1m_h4x_s3ss"
+_VILLAGER_COOKIE = ("role=villager; theme=dark; session=%s; "
+                    "note=chief-never-stores-his-master-key-in-a-cookie-he-TYPES-it-at-login"
+                    % HACKER_SESSION)
+
+_RE_COOKIE = re.compile(r"document\.cookie", re.I)
+_RE_KEYLOG = re.compile(r"onkey(press|down|up)|addEventListener\s*\(\s*['\"]key", re.I)
+_RE_EXFIL  = re.compile(r"fetch\s*\(|\.src\s*=|new\s+Image", re.I)
+
+
+def _hunter():
+    import secrets as _s
+    h = request.cookies.get("xss_hunter", "") or ""
+    new = ""
+    if not h:
+        h = new = _s.token_hex(4)
+    return h, new
+
+def _with_hunter(resp, new):
+    if new:
+        resp.set_cookie("xss_hunter", new, httponly=False, samesite="Lax", secure=False, path="/")
+    return resp
+
+def _is_hacker():
+    return request.cookies.get("session", "") == HACKER_SESSION
+
+
+@app.route("/xss/catch")
+def xss_catch():
+    # The beacon a real stealer payload would hit (also works if a student runs theirs for real).
+    h = re.sub(r"[^0-9a-f]", "", (request.args.get("h", "") or "").lower())[:16]
+    d = (request.args.get("c") or request.args.get("k") or request.args.get("d") or "")[:300]
+    if h and d:
+        box = CATCH.setdefault(h, [])
+        if d not in box:
+            box.append(d); CATCH[h] = box[-50:]
+    return make_response((_XSS_GIF, 200, {"Content-Type": "image/gif"}))
+
+
+@app.route("/xss/attacker")
+def xss_attacker():
+    hunter, new = _hunter()   # recon rig: phish a villager via the phone's Mail app
+    return _with_hunter(make_response(render_template(
+        "hack_entry.html", hunter=hunter, is_hacker=_is_hacker())), new)
+
+
+@app.route("/xss/attacker/inside")
+def xss_inside():
+    hunter, new = _hunter()
+    if not _is_hacker():      # session-ride gate: must present the stolen session cookie (use Burp)
+        return _with_hunter(make_response(render_template("hack_locked.html", hunter=hunter)), new)
+    return _with_hunter(make_response(render_template("hack_desk.html", hunter=hunter)), new)
+
+
+@app.route("/xss/attacker/send", methods=["POST"])
+def xss_send():
+    # The phone "Mail" send. Victims are simulated: we only check the pasted payload really attacks.
+    data = request.get_json(silent=True) or request.form
+    to      = (data.get("to") or "").lower()       # the Mail recipient = the person you selected
+    payload = data.get("payload") or ""
+    tool    = (data.get("tool") or "").lower()      # the tool equipped on the hacker desktop
+    exfil   = bool(_RE_EXFIL.search(payload))
+    if not _is_hacker():
+        # Step 1 — phish a villager for their session cookie
+        if "villager" in to and _RE_COOKIE.search(payload) and exfil:
+            return jsonify(ok=True, phase="cookie", loot=_VILLAGER_COOKIE,
+                           msg="the villager opened your mail and clicked the link — cookie captured")
+        return jsonify(ok=False, phase="cookie",
+                       msg="target didn't bite — your link has to actually read and exfiltrate document.cookie")
+    # Hacker: Step 4 — keylog the chief (needs the Keylogger equipped + the Chief as recipient)
+    if tool == "keylogger" and "chief" in to and _RE_KEYLOG.search(payload) and exfil:
+        return jsonify(ok=True, phase="flag", flag=XSS5_FLAG,
+                       msg="the chief clicked, then logged in — his keystrokes are yours")
+    return jsonify(ok=False, phase="flag",
+                   msg="nothing captured — equip the Keylogger, pick the Chief, and send a real key-logging link")
 
 
 # ---------------------------------------------------------------------------

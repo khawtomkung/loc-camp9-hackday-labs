@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ShadowVillage{% endblock %}</title>
+  <style>
+    :root{ --bg:#070b07; --panel:#0d150d; --edge:#1f3b1f; --fg:#8bf08b; --dim:#3f6b3f;
+           --emer:#17c964; --bad:#ff5c5c; --amber:#f0b429; }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; }
+    body{ background:var(--bg); color:var(--fg); line-height:1.55;
+          font-family:'Courier New',ui-monospace,SFMono-Regular,monospace;
+          background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);
+          min-height:100vh; }
+    a{ color:var(--emer); text-decoration:none; }
+    .wrap{ max-width:820px; margin:0 auto; padding:24px 16px 120px; }
+    .top{ display:flex; align-items:center; gap:10px; border-bottom:2px solid var(--edge);
+          padding-bottom:10px; margin-bottom:18px; flex-wrap:wrap; }
+    .brand{ font-weight:bold; letter-spacing:2px; color:var(--emer); text-shadow:0 0 8px rgba(23,201,100,.45); }
+    .brand .blk{ background:var(--emer); color:#06130a; padding:0 7px; margin-right:7px; }
+    .beacon{ margin-left:auto; font-size:13px; color:var(--dim); } .beacon b{ color:var(--fg); }
+    .panel{ border:2px solid var(--edge); background:var(--panel); padding:16px 18px; margin:14px 0;
+            box-shadow:inset 0 0 0 1px #000, 5px 5px 0 #000; }
+    h1{ font-size:17px; margin:.1em 0 .5em; letter-spacing:.5px; }
+    h2{ font-size:14px; color:var(--dim); letter-spacing:2px; margin:.2em 0 1em; text-transform:uppercase; }
+    .obj{ color:var(--emer); } .muted{ color:var(--dim); font-size:12px; }
+    /* tool grid (desk) */
+    .tools{ display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; }
+    .tool{ border:2px solid var(--edge); background:#0a120a; color:var(--fg); font-family:inherit;
+           padding:14px 8px; text-align:center; cursor:pointer; font-size:12px; }
+    .tool .ic{ display:block; font-size:24px; margin-bottom:6px; }
+    .tool.off{ opacity:.45; cursor:not-allowed; }
+    .tool.sel{ border-color:var(--emer); background:#0e2314; box-shadow:0 0 0 1px var(--emer), 0 0 14px rgba(23,201,100,.3); }
+    .equip{ margin-top:12px; color:var(--amber); font-size:13px; min-height:1.2em; }
+    /* phone */
+    #phoneBtn{ position:fixed; right:20px; bottom:20px; z-index:40; width:58px; height:58px; border-radius:16px;
+               border:2px solid var(--emer); background:#0a120a; color:#fff; font-size:26px; cursor:pointer;
+               box-shadow:0 6px 0 #000, 0 0 18px rgba(23,201,100,.35); }
+    .phone{ position:fixed; right:20px; bottom:90px; z-index:41; width:300px; height:600px; max-height:84vh;
+            background:#000; border:3px solid #222; border-radius:40px; padding:10px;
+            box-shadow:0 14px 40px rgba(0,0,0,.7); transition:transform .22s ease, opacity .22s ease; }
+    .phone.hidden{ transform:translateY(24px) scale(.96); opacity:0; pointer-events:none; }
+    .screen{ position:relative; width:100%; height:100%; background:#0a0f12; border-radius:30px; overflow:hidden;
+             font-family:-apple-system,'Helvetica Neue',Arial,sans-serif; color:#e8f0e8; display:flex; flex-direction:column; }
+    .notch{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:22px;
+            background:#000; border-radius:0 0 16px 16px; z-index:5; }
+    .statusbar{ display:flex; justify-content:space-between; padding:8px 20px 4px; font-size:11px; color:#cfe; }
+    .view{ flex:1; overflow:auto; padding:14px; }
+    .view.hidden{ display:none; }
+    .apps{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px 8px; margin-top:10px; }
+    .app{ background:none; border:none; color:#dfe; font:inherit; font-size:10px; cursor:pointer; display:flex;
+          flex-direction:column; align-items:center; gap:5px; }
+    .app .ic{ width:50px; height:50px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+              font-size:26px; background:linear-gradient(160deg,#1a2a1a,#0c160c); box-shadow:0 2px 6px rgba(0,0,0,.5); }
+    .app.locked{ opacity:.5; }
+    .mailhdr{ display:flex; align-items:center; gap:8px; font-weight:bold; color:#fff; padding:2px 0 10px; border-bottom:1px solid #223; }
+    .mailhdr button{ background:none; border:none; color:#4ea1ff; font-size:22px; cursor:pointer; }
+    .view label{ display:block; font-size:11px; color:#8aa; margin:12px 0 4px; }
+    .view select, .view textarea{ width:100%; background:#0f1620; color:#e8f0e8; border:1px solid #2a3a2a;
+            border-radius:8px; padding:9px; font-family:ui-monospace,monospace; font-size:12px; }
+    .view textarea{ min-height:120px; resize:vertical; }
+    .sendbtn{ width:100%; margin-top:14px; background:#17c964; color:#06130a; border:none; border-radius:10px;
+              padding:11px; font-weight:bold; font-size:14px; cursor:pointer; }
+    .homebar{ height:5px; width:110px; background:#fff; opacity:.55; border-radius:3px; margin:6px auto 9px; }
+    /* NPC + explosion */
+    .anim{ position:absolute; inset:0; z-index:9; background:rgba(2,6,2,.82); display:flex; align-items:center;
+           justify-content:center; }
+    .anim.hidden{ display:none; }
+    .stage{ position:relative; width:160px; height:160px; text-align:center; }
+    .npc{ font-size:60px; position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
+          animation:npcTap 1.5s ease forwards; }
+    .cursor{ font-size:34px; position:absolute; left:64%; top:60%; animation:curTap 1.5s ease forwards; }
+    .boom{ font-size:20px; position:absolute; left:50%; top:46%; transform:translate(-50%,-50%) scale(0); opacity:0;
+           animation:boom 1.5s ease forwards; }
+    .ring{ position:absolute; left:50%; top:46%; width:10px; height:10px; border:3px solid var(--amber);
+           border-radius:50%; transform:translate(-50%,-50%) scale(0); opacity:0; animation:ring 1.5s ease forwards; }
+    @keyframes npcTap{ 0%{transform:translate(-50%,-50%) scale(1)} 35%{transform:translate(-50%,-54%) scale(1.05)}
+      55%{transform:translate(-50%,-50%) scale(1)} 70%{opacity:1} 78%{opacity:1; filter:brightness(2)}
+      86%{opacity:0} 100%{opacity:0} }
+    @keyframes curTap{ 0%{opacity:0; transform:translate(10px,10px)} 25%{opacity:1; transform:translate(0,0)}
+      45%{transform:translate(-6px,-6px)} 55%{transform:translate(0,0)} 70%{opacity:1} 72%{opacity:0} 100%{opacity:0} }
+    @keyframes boom{ 0%,70%{opacity:0; transform:translate(-50%,-50%) scale(0)} 74%{opacity:1; transform:translate(-50%,-50%) scale(1.1)}
+      100%{opacity:0; transform:translate(-50%,-50%) scale(2.6)} }
+    @keyframes ring{ 0%,70%{opacity:0; transform:translate(-50%,-50%) scale(0)} 74%{opacity:.9}
+      100%{opacity:0; transform:translate(-50%,-50%) scale(10)} }
+    /* toast + loot */
+    .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:60; max-width:92vw;
+            border:2px solid var(--emer); background:#0b1a0f; color:var(--fg); padding:11px 16px; font-size:13px;
+            box-shadow:5px 5px 0 #000; }
+    .toast.hidden{ display:none; } .toast.err{ border-color:var(--bad); color:#ffd0d0; }
+    .loot{ border-left:4px solid var(--emer); background:#06130a; padding:10px 12px; margin-top:10px; font-size:13px;
+           white-space:pre-wrap; word-break:break-all; }
+    .loot.hidden{ display:none; } .loot b{ color:var(--amber); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <span class="brand"><span class="blk">▚</span>ShadowVillage</span>
+      <span class="beacon">beacon&nbsp;id: <b>{{ hunter }}</b></span>
+    </div>
+    {% block desktop %}{% endblock %}
+    <div id="loot" class="loot hidden"></div>
+  </div>
+
+  <button id="phoneBtn" title="phone">📱</button>
+  <div id="phone" class="phone hidden">
+    <div class="screen">
+      <div class="notch"></div>
+      <div class="statusbar"><span>ShadowOS</span><span>▮▮▮ 100%</span></div>
+      <div id="homeView" class="view">
+        <div class="apps">
+          <button class="app" data-app="mail"><span class="ic">✉️</span>Mail</button>
+          <button class="app locked"><span class="ic">📝</span>Notes</button>
+          <button class="app locked"><span class="ic">🖼️</span>Photos</button>
+          <button class="app locked"><span class="ic">⚙️</span>Settings</button>
+          <button class="app locked"><span class="ic">🗺️</span>Maps</button>
+          <button class="app locked"><span class="ic">🎵</span>Music</button>
+        </div>
+      </div>
+      <div id="mailView" class="view hidden">
+        <div class="mailhdr"><button id="mailBack">‹</button> New Message</div>
+        <label>To</label>
+        <select id="mailTo">
+          <option value="">— choose a recipient —</option>
+          <option value="villager">🧑‍🌾 Bramble (villager)</option>
+          <option value="chief">🧓 Elder Oak (village chief)</option>
+          <option value="blacksmith">🧑‍🏭 Smith (blacksmith)</option>
+        </select>
+        <label>Message — paste your link</label>
+        <textarea id="mailBody" spellcheck="false" autocomplete="off"></textarea>
+        <button id="mailSend" class="sendbtn">Send ✈</button>
+      </div>
+      <div id="anim" class="anim hidden">
+        <div class="stage"><span class="ring"></span><span class="boom">💥</span>
+          <span class="cursor">👆</span><span class="npc" id="npcFace">🧑‍🌾</span></div>
+      </div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    (function(){
+      var phone=document.getElementById('phone'), btn=document.getElementById('phoneBtn');
+      var home=document.getElementById('homeView'), mail=document.getElementById('mailView');
+      var toast=document.getElementById('toast'), loot=document.getElementById('loot');
+      var anim=document.getElementById('anim'), npc=document.getElementById('npcFace');
+      function openPhone(){ phone.classList.remove('hidden'); }
+      btn.onclick=function(){ phone.classList.toggle('hidden'); };
+      document.querySelectorAll('.app[data-app=mail]').forEach(function(a){
+        a.onclick=function(){ home.classList.add('hidden'); mail.classList.remove('hidden'); }; });
+      document.getElementById('mailBack').onclick=function(){ mail.classList.add('hidden'); home.classList.remove('hidden'); };
+      function showToast(m,err){ toast.textContent=m; toast.classList.toggle('err',!!err); toast.classList.remove('hidden');
+        clearTimeout(window._tt); window._tt=setTimeout(function(){ toast.classList.add('hidden'); },6000); }
+      function face(to){ return to==='chief'?'🧓':(to==='blacksmith'?'🧑‍🏭':'🧑‍🌾'); }
+      function play(to,cb){ npc.textContent=face(to); anim.classList.remove('hidden');
+        // retrigger CSS animation
+        anim.querySelectorAll('.npc,.cursor,.boom,.ring').forEach(function(e){ e.style.animation='none'; void e.offsetWidth; e.style.animation=''; });
+        setTimeout(function(){ anim.classList.add('hidden'); cb&&cb(); },1550); }
+      document.getElementById('mailSend').onclick=function(){
+        var to=document.getElementById('mailTo').value, body=document.getElementById('mailBody').value;
+        if(!to){ showToast('pick a recipient first',true); return; }
+        fetch('/xss/attacker/send',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({to:to, payload:body, tool:(window.HACK&&window.HACK.tool)||''})})
+          .then(function(r){return r.json();}).then(function(d){
+            if(!d.ok){ showToast('✗ '+d.msg,true); return; }
+            play(to,function(){
+              showToast('💥 '+d.msg);
+              if(d.phase==='cookie'){ loot.innerHTML='// stolen cookie (ride the <b>session</b> to log in):<br>'+d.loot; loot.classList.remove('hidden'); }
+              if(d.phase==='flag'){ loot.innerHTML='// chief master key:<br><b>'+d.flag+'</b>'; loot.classList.remove('hidden'); }
+            });
+          }).catch(function(){ showToast('network error',true); });
+      };
+      window.ShadowPhone={open:openPhone};
+    })();
+  </script>
+  {% block pagejs %}{% endblock %}
+</body>
+</html>

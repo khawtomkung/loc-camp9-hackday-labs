@@ -2,7 +2,7 @@
 // Admin Bot (the victim). Logs in as mayor (non-HttpOnly session cookie), sweeps /reviews,
 // follows every same-origin link (incl. each review author's /profile/<username>), re-visits
 // its own /profile, waits, loops every ~30s. Visiting a student's /profile fires the stored
-// avatar payload (XSS-5); loading a review's <script src> fires the JSONP bypass (XSS-6).
+// avatar payload (used only by the EXTRA challenge).
 const { chromium } = require("playwright");
 
 const HUB = process.env.HUB || "http://hub:8080";

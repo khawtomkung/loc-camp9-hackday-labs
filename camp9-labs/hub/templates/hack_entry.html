@@ -1,0 +1,17 @@
+{% extends "hack_base.html" %}
+{% block title %}ShadowVillage · recon{% endblock %}
+{% block desktop %}
+  <div class="panel">
+    <h2>recon rig</h2>
+    <h1>🎣 phish a villager</h1>
+    <p class="obj">objective › open the <b>📱 phone → Mail</b>, send a villager a link that lifts their cookie.</p>
+    <p class="muted">their session will get you into the hacker network. the chief's master key is NOT in a cookie.</p>
+  </div>
+  {% if is_hacker %}
+  <div class="panel">
+    <p class="obj">✓ session accepted — you're riding a villager's session.</p>
+    <a class="obj" href="/xss/attacker/inside">» open the hacker desktop ›</a>
+  </div>
+  {% endif %}
+{% endblock %}
+{% block pagejs %}<script>window.HACK={tool:null};</script>{% endblock %}

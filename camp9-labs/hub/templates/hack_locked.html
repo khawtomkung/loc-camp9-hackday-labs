@@ -1,0 +1,12 @@
+{% extends "hack_base.html" %}
+{% block title %}ShadowVillage · locked{% endblock %}
+{% block desktop %}
+  <div class="panel">
+    <h2>hacker network</h2>
+    <h1>⛔ 403 — no valid session</h1>
+    <p class="obj">this area checks your <code>session</code> cookie. ride a stolen one to get in.</p>
+    <p class="muted">phish a villager first (📱 → Mail), then replay this request with their <code>session=…</code> cookie (Burp Repeater / DevTools).</p>
+    <p class="muted"><a href="/xss/attacker">‹ back to recon</a></p>
+  </div>
+{% endblock %}
+{% block pagejs %}<script>window.HACK={tool:null};</script>{% endblock %}

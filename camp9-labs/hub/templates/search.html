@@ -1,22 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Search{% endblock %}
-{# lab.txt §4.1 — the `| safe` filters ARE the bug. NO CSP header on this route. #}
+{# The {{ q | safe }} in <h3> is the bug (all levels). The <input> is ESCAPED (not a sink). NO CSP.
+   No flag is ever plaintext here: on a working injection the server sets window.__s to a base64 blob
+   that must be run through reveal()/reveal2() from /assets/js/sign.js. No banner anywhere. #}
 {% block head %}
-  <script>
-    {# The flag is defined ONLY when the server confirms q is a correct breakout for this
-       context. No valid payload -> nothing here, so view-source / atob() reveals nothing. #}
-    {% if sign_ok %}window.signFlag   = atob("{{ sign_b64 }}");{% endif %}   {# XSS-1 #}
-    {% if secret_ok %}window.secretFlag = atob("{{ secret_b64 }}");{% endif %} {# XSS-2 #}
-    {% if golem_ok %}window.golemFlag  = atob("{{ golem_b64 }}");{% endif %}  {# XSS-4 #}
-  </script>
+  <script src="/assets/js/sign.js"></script>
+  {% if sflag_b64 %}<script>window.__s = "{{ sflag_b64 }}";</script>{% endif %}
 {% endblock %}
 {% block content %}
-  <h2>Item Search{% if guard %} <small>(🛡️ Iron Golem guard ON)</small>{% endif %}</h2>
-  {% if blocked %}<p class="waf">🛡️ The Iron Golem blocked your request.</p>{% endif %}
-  <h3>Results for: {{ q | safe }}</h3>                    {# HTML-body context  -> XSS-1 #}
+  <h2>Item Search <small>(board #{{ lvl }})</small></h2>
+  {% if blocked %}<p class="waf">🛡️ ตัวกรองบล็อก payload ของคุณ — เวกเตอร์นี้ไม่ผ่าน ลองวิธีอื่น</p>{% endif %}
+  <h3>Results for: {{ q | safe }}</h3>                 {# executing sink — every level #}
   <form>
-    <input name="q" value="{{ q | safe }}">               {# attribute context  -> XSS-2 #}
-    {% if guard %}<input type="hidden" name="guard" value="on">{% endif %}
+    <input name="q" value="{{ q }}">                   {# escaped: NOT a sink #}
+    {% if lvl != 1 %}<input type="hidden" name="lvl" value="{{ lvl }}">{% endif %}
     <button>Search</button>
   </form>
+  {% if lvl == 4 %}
+    {# XSS-4 breadcrumb: ONE encoded comment. It decodes to the backup-relay PATH, never the flag.
+       The real flag is only behind that relay, scrambled twice (reveal2() in sign.js). #}
+    <!-- bak-relay: {{ bak_b64 }} -->
+  {% endif %}
 {% endblock %}

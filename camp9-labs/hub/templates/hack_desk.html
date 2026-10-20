@@ -1,0 +1,33 @@
+{% extends "hack_base.html" %}
+{% block title %}ShadowVillage · root{% endblock %}
+{% block desktop %}
+  <div class="panel">
+    <h2>hacker desktop · root@shadowvillage</h2>
+    <h1>🧰 toolkit</h1>
+    <p class="obj">objective › <b>equip the Keylogger</b>, then <b>📱 phone → Mail</b> a key-logging link to the Chief.</p>
+    <div class="tools">
+      <button class="tool off"><span class="ic">📡</span>Port Scanner</button>
+      <button class="tool off"><span class="ic">📶</span>Wifi Sniffer</button>
+      <button class="tool off"><span class="ic">🧬</span>Exploit Kit</button>
+      <button class="tool" data-tool="keylogger"><span class="ic">⌨️</span>Keylogger</button>
+      <button class="tool off"><span class="ic">🍪</span>Cookie Grabber</button>
+      <button class="tool off"><span class="ic">🕸️</span>Botnet</button>
+      <button class="tool off"><span class="ic">🔐</span>Ransomware</button>
+      <button class="tool off"><span class="ic">🛰️</span>Proxy Mesh</button>
+    </div>
+    <p id="equip" class="equip">no tool equipped</p>
+  </div>
+{% endblock %}
+{% block pagejs %}
+<script>
+  window.HACK={tool:null};
+  var eq=document.getElementById('equip');
+  document.querySelectorAll('.tool[data-tool]').forEach(function(t){
+    t.onclick=function(){
+      document.querySelectorAll('.tool').forEach(function(x){x.classList.remove('sel');});
+      t.classList.add('sel'); window.HACK.tool=t.getAttribute('data-tool');
+      eq.textContent='equipped: '+window.HACK.tool+' — now mail the Chief a link that logs his keystrokes';
+    };
+  });
+</script>
+{% endblock %}
